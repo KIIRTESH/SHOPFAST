@@ -127,13 +127,19 @@ def is_store_admin(user) -> bool:
     return getattr(user, "role", None) == "store_admin"
 
 
-def validate_counter_access(user, requested_counter: Optional[str] = None) -> str:
+async def validate_counter_access(
+    user,
+    requested_counter: Optional[str] = None,
+    db: Optional[AsyncSession] = None,
+) -> str:
     """
     Validates and resolves the counter number for the authenticated user.
     - If user is a store admin (role == 'store_admin'): allows the requested_counter (or defaults to '03').
     - If user is counter staff:
         - Must have a valid assigned counter_number.
-        - If counter_number is missing, empty, or ambiguous: raises 403 Forbidden.
+        - If counter_number is missing, empty, or whitespace: raises 403 Forbidden.
+        - Verifies that the staff member's assigned counter exists and is active in the ShopFast database.
+          If nonexistent, inactive, or malformed, raises 403 Forbidden.
         - If requested_counter is provided and differs from assigned counter: raises 403 Forbidden.
     Returns the authoritative counter number.
     """
@@ -141,13 +147,35 @@ def validate_counter_access(user, requested_counter: Optional[str] = None) -> st
         return requested_counter or "03"
 
     staff_counter = getattr(user, "counter_number", None)
-    if not staff_counter or not str(staff_counter).strip():
+    if staff_counter is None or not str(staff_counter).strip():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied: No counter assigned to this staff account."
         )
 
     staff_counter = str(staff_counter).strip()
+
+    # Query database to verify assigned counter exists and is active
+    from app.models.counter import Counter
+
+    async def _verify_counter(session: AsyncSession) -> bool:
+        stmt = select(Counter).where(Counter.counter_number == staff_counter, Counter.is_active == True)
+        res = await session.execute(stmt)
+        return res.scalars().first() is not None
+
+    if db is not None:
+        counter_valid = await _verify_counter(db)
+    else:
+        from app.db.session import async_session_maker
+        async with async_session_maker() as session:
+            counter_valid = await _verify_counter(session)
+
+    if not counter_valid:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Access denied: Assigned counter '{staff_counter}' is invalid or does not exist."
+        )
+
     if requested_counter and str(requested_counter).strip() != staff_counter:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -155,5 +183,6 @@ def validate_counter_access(user, requested_counter: Optional[str] = None) -> st
         )
 
     return staff_counter
+
 
 

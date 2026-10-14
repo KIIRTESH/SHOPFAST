@@ -925,3 +925,121 @@ async def test_counter_authorization_and_store_admin_role_consistency(customer_a
         lookalike_other_tx = await client.get("/api/v1/admin/transactions?counter=02", headers=headers_lookalike)
         assert lookalike_other_tx.status_code == 403
 
+
+@pytest.mark.asyncio
+async def test_nonexistent_and_invalid_counter_assignment_denial(customer_auth_headers):
+    """
+    Focused regression test for targeted fix:
+    Counter staff with missing, empty, malformed, or nonexistent counter assignments must receive 403 Forbidden.
+    Valid counter staff can access only their assigned counter.
+    Legitimate store_admin retains access to all configured counters.
+    """
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        # Create an order at Counter 01
+        o1_resp = await client.post("/api/v1/orders", json={
+            "customer_identifier": "Nonexistent Counter Test Cust",
+            "payment_method": "UPI",
+            "payment_status": "PAID",
+            "preferred_counter": "01",
+            "items": [{"product_barcode": "8901058003765", "product_name": "Maggi", "unit_price": 56.0, "quantity": 1}]
+        }, headers=customer_auth_headers)
+        assert o1_resp.status_code == 201
+        num_1 = o1_resp.json()["order_number"]
+
+        uid = uuid.uuid4().hex[:8]
+        u_none = f"staff_none_{uid}"
+        u_empty = f"staff_empty_{uid}"
+        u_space = f"staff_space_{uid}"
+        u_99 = f"staff_c99_{uid}"
+        u_malformed = f"staff_malformed_{uid}"
+
+        async with async_session_maker() as db:
+            h, s = create_pin_hash("1234")
+            db.add_all([
+                User(username=u_none, display_name="No Counter", pin_hash=h, pin_salt=s, role="admin", counter_number=None),
+                User(username=u_empty, display_name="Empty Counter", pin_hash=h, pin_salt=s, role="admin", counter_number=""),
+                User(username=u_space, display_name="Whitespace Counter", pin_hash=h, pin_salt=s, role="admin", counter_number="   "),
+                User(username=u_99, display_name="Counter 99 Staff", pin_hash=h, pin_salt=s, role="admin", counter_number="99"),
+                User(username=u_malformed, display_name="Malformed Counter", pin_hash=h, pin_salt=s, role="admin", counter_number="INVALID_@#$%"),
+            ])
+            await db.commit()
+
+        # Test each invalid/nonexistent account
+        for invalid_user, desc in [
+            (u_none, "no counter (None)"),
+            (u_empty, "empty string counter"),
+            (u_space, "whitespace-only counter"),
+            (u_99, "nonexistent Counter 99"),
+            (u_malformed, "malformed Counter string"),
+        ]:
+            login = await client.post("/api/v1/auth/login", json={"username": invalid_user, "pin": "1234"})
+            assert login.status_code == 200, f"Login should succeed for {desc}"
+            headers = {"Authorization": f"Bearer {login.json()['token']}"}
+
+            # 1. /admin/orders/active must return 403 Forbidden
+            r_active = await client.get("/api/v1/admin/orders/active", headers=headers)
+            assert r_active.status_code == 403, f"Expected 403 on /orders/active for {desc}, got {r_active.status_code}"
+
+            # 2. /admin/verify/lookup must return 403 Forbidden
+            r_lookup = await client.post("/api/v1/admin/verify/lookup", headers=headers, json={
+                "token_or_order_number": num_1,
+                "counter_number": "01"
+            })
+            assert r_lookup.status_code == 403, f"Expected 403 on /verify/lookup for {desc}, got {r_lookup.status_code}"
+
+            # 3. /admin/verify/scan must return 403 Forbidden
+            r_scan = await client.post("/api/v1/admin/verify/scan", headers=headers, json={
+                "order_number": num_1,
+                "scanned_barcode": "8901058003765",
+                "counter_number": "01"
+            })
+            assert r_scan.status_code == 403, f"Expected 403 on /verify/scan for {desc}, got {r_scan.status_code}"
+
+            # 4. /admin/orders/{order_number} must return 403 Forbidden
+            r_ord = await client.get(f"/api/v1/admin/orders/{num_1}", headers=headers)
+            assert r_ord.status_code == 403, f"Expected 403 on /admin/orders/detail for {desc}, got {r_ord.status_code}"
+
+            # 5. /admin/transactions must return 403 Forbidden
+            r_tx = await client.get("/api/v1/admin/transactions", headers=headers)
+            assert r_tx.status_code == 403, f"Expected 403 on /transactions for {desc}, got {r_tx.status_code}"
+
+            # 6. /orders/{order_number} must return 403 Forbidden
+            r_pub_ord = await client.get(f"/api/v1/orders/{num_1}", headers=headers)
+            assert r_pub_ord.status_code == 403, f"Expected 403 on /orders/by_number for {desc}, got {r_pub_ord.status_code}"
+
+            # 7. /orders/{order_number}/qr-image must return 403 Forbidden
+            r_qr = await client.get(f"/api/v1/orders/{num_1}/qr-image", headers=headers)
+            assert r_qr.status_code == 403, f"Expected 403 on /orders/qr-image for {desc}, got {r_qr.status_code}"
+
+        # Confirm valid Counter 01 staff can access Counter 01
+        s1_login = await client.post("/api/v1/auth/login", json={"username": "staff01", "pin": "1234"})
+        assert s1_login.status_code == 200
+        s1_headers = {"Authorization": f"Bearer {s1_login.json()['token']}"}
+
+        s1_active = await client.get("/api/v1/admin/orders/active", headers=s1_headers)
+        assert s1_active.status_code == 200
+        assert num_1 in {o["order_number"] for o in s1_active.json()}
+
+        # Confirm Counter 01 staff cannot access Counter 02 or Counter 03
+        assert (await client.get("/api/v1/admin/orders/active?counter_number=02", headers=s1_headers)).status_code == 403
+        assert (await client.get("/api/v1/admin/orders/active?counter_number=03", headers=s1_headers)).status_code == 403
+
+        # Confirm admin3 can access Counter 03 but cannot access other counters or store-wide operations
+        a3_login = await client.post("/api/v1/auth/login", json={"username": "admin3", "pin": "333333"})
+        assert a3_login.status_code == 200
+        a3_headers = {"Authorization": f"Bearer {a3_login.json()['token']}"}
+
+        assert (await client.get("/api/v1/admin/orders/active", headers=a3_headers)).status_code == 200
+        assert (await client.get("/api/v1/admin/orders/active?counter_number=01", headers=a3_headers)).status_code == 403
+        assert (await client.get("/api/v1/admin/orders/active?counter_number=02", headers=a3_headers)).status_code == 403
+
+        # Confirm store_admin retains authorized access across all configured counters
+        sa_login = await client.post("/api/v1/auth/login", json={"username": "admin", "pin": "1234"})
+        assert sa_login.status_code == 200
+        sa_headers = {"Authorization": f"Bearer {sa_login.json()['token']}"}
+
+        for c_num in ["01", "02", "03", "04", "07"]:
+            sa_res = await client.get(f"/api/v1/admin/orders/active?counter_number={c_num}", headers=sa_headers)
+            assert sa_res.status_code == 200, f"Store admin should access Counter {c_num}"
+
+

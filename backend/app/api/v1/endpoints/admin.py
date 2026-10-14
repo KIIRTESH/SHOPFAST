@@ -46,7 +46,7 @@ async def lookup_order_for_verification(
     Looks up a customer order by Fast-Pass QR token payload or Order Number.
     Initializes cashier verification session.
     """
-    eff_counter = validate_counter_access(current_admin, payload.counter_number)
+    eff_counter = await validate_counter_access(current_admin, payload.counter_number, db=db)
     try:
         detail = await admin_service.lookup_order(
             db=db,
@@ -78,7 +78,7 @@ async def scan_physical_item(
     Cashier physically scans an item barcode from customer's shopping basket.
     Validates against paid cart, detects discrepancies, and updates verification progress.
     """
-    eff_counter = validate_counter_access(current_admin, payload.counter_number)
+    eff_counter = await validate_counter_access(current_admin, payload.counter_number, db=db)
     try:
         (
             status_code,
@@ -121,7 +121,7 @@ async def complete_customer_verification(
     Cashier finalizes clearance, prints/stamps receipt, and releases customer for exit.
     Records verification performance duration and clears transaction.
     """
-    eff_counter = validate_counter_access(current_admin, payload.counter_number)
+    eff_counter = await validate_counter_access(current_admin, payload.counter_number, db=db)
     try:
         return await admin_service.complete_verification(
             db=db,
@@ -144,7 +144,7 @@ async def reset_verification_session(
     db: AsyncSession = Depends(get_db)
 ):
     """Resets verification items for testing or re-scan workflows."""
-    eff_counter = validate_counter_access(current_admin, counter_number)
+    eff_counter = await validate_counter_access(current_admin, counter_number, db=db)
     try:
         return await admin_service.reset_verification(
             db=db,
@@ -169,7 +169,7 @@ async def handle_discrepancy_action(
     'REMOVE_AND_CONTINUE': customer removes unpurchased item from bag.
     'SEND_TO_REGULAR_CHECKOUT': transaction flagged and customer redirected to regular register.
     """
-    eff_counter = validate_counter_access(current_admin, payload.counter_number)
+    eff_counter = await validate_counter_access(current_admin, payload.counter_number, db=db)
     stmt = select(Order).where(Order.order_number == payload.order_number)
     res = await db.execute(stmt)
     order = res.scalars().first()
@@ -199,7 +199,7 @@ async def get_active_orders_for_counter(
     db: AsyncSession = Depends(get_db)
 ):
     """Lists current active incoming and processing orders at this counter register."""
-    eff_counter = validate_counter_access(current_admin, counter_number)
+    eff_counter = await validate_counter_access(current_admin, counter_number, db=db)
     from app.models.counter import Counter
     c_check = await db.execute(select(Counter).where(Counter.counter_number == eff_counter))
     if not c_check.scalars().first():
@@ -237,10 +237,11 @@ async def get_order_verification_detail(
         raise HTTPException(status_code=404, detail="Order not found.")
 
     if not is_store_admin(current_admin):
-        if not current_admin.counter_number or detail.assigned_counter_number != current_admin.counter_number:
+        eff_counter = await validate_counter_access(current_admin, db=db)
+        if detail.assigned_counter_number != eff_counter:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Access denied. Order #{order_number} is assigned to Counter {detail.assigned_counter_number}, not Counter {current_admin.counter_number}."
+                status_code=http_status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. Order #{order_number} is assigned to Counter {detail.assigned_counter_number}, not Counter {eff_counter}."
             )
 
     return detail
@@ -258,17 +259,8 @@ async def list_transactions_ledger(
 ):
     """Returns store-wide transaction audit ledger with real-time filters."""
     if not is_store_admin(current_admin):
-        if not current_admin.counter_number:
-            raise HTTPException(
-                status_code=http_status.HTTP_403_FORBIDDEN,
-                detail="Access denied: No counter assigned to this staff account."
-            )
-        if counter and counter != current_admin.counter_number:
-            raise HTTPException(
-                status_code=http_status.HTTP_403_FORBIDDEN,
-                detail=f"Access denied: Counter terminal restricted to Counter {current_admin.counter_number}."
-            )
-        counter = current_admin.counter_number
+        eff_counter = await validate_counter_access(current_admin, counter, db=db)
+        counter = eff_counter
 
     return await admin_service.get_transactions(
         db=db,
@@ -361,11 +353,13 @@ async def refund_transaction(
     if not order:
         raise HTTPException(status_code=404, detail=f"Order #{order_number} not found.")
 
-    if not is_store_admin(current_admin) and (not current_admin.counter_number or order.assigned_counter_number != current_admin.counter_number):
-        raise HTTPException(
-            status_code=http_status.HTTP_403_FORBIDDEN,
-            detail=f"Access denied: Counter terminal restricted to Counter {current_admin.counter_number}."
-        )
+    if not is_store_admin(current_admin):
+        eff_counter = await validate_counter_access(current_admin, db=db)
+        if order.assigned_counter_number != eff_counter:
+            raise HTTPException(
+                status_code=http_status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied: Counter terminal restricted to Counter {eff_counter}."
+            )
 
     if order.payment_status == "REFUNDED":
         return AdminTransactionSummary(

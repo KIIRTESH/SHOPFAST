@@ -11,7 +11,7 @@ from app.models.order import Order, OrderItem
 from app.models.counter import Counter
 from app.models.product import Product
 from app.models.user import User
-from app.core.auth import get_current_user, require_admin, is_store_admin
+from app.core.auth import get_current_user, require_admin, is_store_admin, validate_counter_access
 from app.schemas.order import (
     OrderCreate,
     OrderRead,
@@ -361,10 +361,11 @@ async def get_order_qr_image(
         )
 
     if current_user.role in ("admin", "store_admin") and not is_store_admin(current_user):
-        if not current_user.counter_number or order.assigned_counter_number != current_user.counter_number:
+        eff_counter = await validate_counter_access(current_user, db=db)
+        if order.assigned_counter_number != eff_counter:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Access denied. Order is assigned to Counter {order.assigned_counter_number}, not Counter {current_user.counter_number}."
+                detail=f"Access denied. Order is assigned to Counter {order.assigned_counter_number}, not Counter {eff_counter}."
             )
 
     png_bytes = await qr_service.generate_qr_bytes(order.qr_token)
@@ -396,10 +397,11 @@ async def get_order_by_number(
         )
 
     if current_user.role in ("admin", "store_admin") and not is_store_admin(current_user):
-        if not current_user.counter_number or order.assigned_counter_number != current_user.counter_number:
+        eff_counter = await validate_counter_access(current_user, db=db)
+        if order.assigned_counter_number != eff_counter:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Access denied. Order is assigned to Counter {order.assigned_counter_number}, not Counter {current_user.counter_number}."
+                detail=f"Access denied. Order is assigned to Counter {order.assigned_counter_number}, not Counter {eff_counter}."
             )
 
     return order
