@@ -1,0 +1,3678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#070D1E">
+  <title>ShopFast — Cashier POS & Verification Terminal</title>
+
+  <script>
+    // Enforce HTTPS in production environments for camera and scanner access
+    if (location.protocol === 'http:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1' && !location.hostname.startsWith('192.168.') && !location.hostname.startsWith('10.')) {
+      location.replace('https://' + location.host + location.pathname + location.search + location.hash);
+    }
+  </script>
+
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Scanning & Animation Libraries -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script>
+    if (!window.Html5Qrcode) {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"><\/script>');
+    }
+  </script>
+  <script>
+    // Permanently disable Html5Qrcode's internal "Scanner paused" text and UI overlay
+    (function() {
+      function silenceScannerPaused() {
+        if (window.Html5Qrcode && Html5Qrcode.prototype) {
+          Html5Qrcode.prototype.showPausedState = function() {};
+          Html5Qrcode.prototype.hidePausedState = function() {};
+        }
+      }
+      silenceScannerPaused();
+      document.addEventListener('DOMContentLoaded', silenceScannerPaused);
+      window.addEventListener('load', silenceScannerPaused);
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <style>
+    :root {
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      /* Sidebar Dark Theme */
+      --sb-bg: #070D1E;
+      --sb-surface: #0E172F;
+      --sb-border: #1B284A;
+      --sb-text: #94A3B8;
+      --sb-text-bright: #F8FAFC;
+      --sb-active-bg: rgba(255, 85, 0, 0.12);
+      --sb-active-border: #FF5500;
+
+      /* Main Light Dashboard */
+      --bg: #F8FAFC;
+      --surface: #FFFFFF;
+      --surface-subtle: #F1F5F9;
+      --border: #E2E8F0;
+      --border-strong: #CBD5E1;
+      
+      --text-main: #0F172A;
+      --text-muted: #64748B;
+      --text-light: #94A3B8;
+
+      /* Brand Accents */
+      --primary: #FF5500;
+      --primary-hover: #E04B00;
+      --primary-light: #FFF2EB;
+
+      /* Semantic Colors */
+      --green: #15803D;
+      --green-bg: #ECFDF5;
+      --green-border: #BBF7D0;
+      --green-dark: #166534;
+
+      --orange: #D97706;
+      --orange-bg: #FFFBEB;
+      --orange-border: #FDE68A;
+
+      --red: #DC2626;
+      --red-bg: #FEF2F2;
+      --red-border: #FECACA;
+
+      --blue: #2563EB;
+      --blue-bg: #EFF6FF;
+      --blue-border: #BFDBFE;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-full: 9999px;
+
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text-main);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* =========================================================================
+       SIDEBAR NAVIGATION
+       ========================================================================= */
+    aside.sidebar {
+      width: 250px;
+      min-width: 250px;
+      background: var(--sb-bg);
+      color: var(--sb-text);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-right: 1px solid var(--sb-border);
+      user-select: none;
+      z-index: 50;
+    }
+
+    .brand-header {
+      padding: 22px 20px 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--sb-border);
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 20px;
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: -0.03em;
+      text-decoration: none;
+    }
+
+    .brand-bolt {
+      color: var(--primary);
+      font-size: 22px;
+      line-height: 1;
+      filter: drop-shadow(0 0 8px rgba(255, 85, 0, 0.4));
+    }
+
+    .sidebar-nav {
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      color: var(--sb-text);
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+      border: 1px solid transparent;
+      background: transparent;
+      text-align: left;
+      width: 100%;
+    }
+
+    .nav-item:hover {
+      background: var(--sb-surface);
+      color: var(--sb-text-bright);
+    }
+
+    .nav-item.active {
+      background: var(--sb-active-bg);
+      color: #FFFFFF;
+      font-weight: 700;
+      border-left: 3px solid var(--sb-active-border);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    }
+
+    .nav-icon {
+      font-size: 16px;
+      min-width: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid var(--sb-border);
+      background: rgba(10, 19, 43, 0.5);
+    }
+
+    .counter-badge-card {
+      background: var(--sb-surface);
+      border: 1px solid var(--sb-border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .counter-label {
+      font-size: 13px;
+      font-weight: 800;
+      color: #FFFFFF;
+    }
+
+    .status-dot-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #4ADE80;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22C55E;
+      box-shadow: 0 0 8px #22C55E;
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.85); }
+    }
+
+    /* =========================================================================
+       MAIN CONTENT CONTAINER
+       ========================================================================= */
+    main.main-viewport {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      background: var(--bg);
+    }
+
+    /* Top Navy Control Header */
+    header.terminal-header {
+      background: #0B132B;
+      color: #FFFFFF;
+      border-bottom: 1px solid #1E293B;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+
+    .header-titles h1 {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .header-titles p {
+      font-size: 12px;
+      color: #94A3B8;
+      margin-top: 2px;
+    }
+
+    .header-chips-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .pill-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .pill-chip.status-active {
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      color: #4ADE80;
+    }
+
+    .pill-chip.status-progress {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #FBBF24;
+    }
+
+    .pill-chip.order-tag {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #E2E8F0;
+      font-family: var(--font-mono);
+    }
+
+    .pill-chip.payment-tag {
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      color: #4ADE80;
+    }
+
+    .header-clock {
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: #94A3B8;
+      text-align: right;
+      padding-left: 12px;
+      border-left: 1px solid #1E293B;
+    }
+
+    /* Tab Panels */
+    .tab-content {
+      padding: 20px 24px;
+      display: none;
+      flex: 1;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* =========================================================================
+       VERIFICATION DESK: 3-COLUMN LAYOUT
+       ========================================================================= */
+    .verification-grid {
+      display: grid;
+      grid-template-columns: 340px 1fr 340px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    @media (max-width: 1280px) {
+      .verification-grid {
+        grid-template-columns: 300px 1fr 300px;
+      }
+    }
+
+    @media (max-width: 1080px) {
+      .verification-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Card Panels */
+    .pos-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    #adminReader {
+      width: 100% !important;
+      min-height: 240px;
+      height: 260px;
+      position: relative !important;
+      background: #0B0F19 !important;
+      overflow: hidden !important;
+      border-radius: var(--radius-md);
+      padding: 0 !important;
+      border: none !important;
+    }
+
+    #adminReader > div,
+    #adminReader__scan_region {
+      width: 100% !important;
+      height: 100% !important;
+      min-height: 100% !important;
+      position: absolute !important;
+      inset: 0 !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      overflow: hidden !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border: none !important;
+    }
+
+    #adminReader video {
+      width: 100% !important;
+      height: 100% !important;
+      min-width: 100% !important;
+      min-height: 100% !important;
+      object-fit: cover !important;
+      position: absolute !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) !important;
+      display: block !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
+    }
+
+    /* Suppress only html5-qrcode dashboard UI and default text overlays without touching internal scan canvas */
+    #adminReader__dashboard,
+    #adminReader__dashboard_section,
+    #adminReader__dashboard_section_csr,
+    #adminReader__header_message,
+    #adminReader__status_span,
+    #qr-shaded-region,
+    .html5-qrcode-element {
+      display: none !important;
+    }
+
+    .pos-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .pos-card-title {
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .cart-locked-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--orange-bg);
+      border: 1px solid var(--orange-border);
+      color: var(--orange);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+    }
+
+    /* Left: Cart Items Table */
+    .cart-items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 14px;
+    }
+
+    .cart-items-table th {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-align: left;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+    }
+
+    .cart-items-table td {
+      padding: 10px 8px;
+      font-size: 12.5px;
+      border-bottom: 1px solid #F1F5F9;
+      vertical-align: middle;
+    }
+
+    .cart-item-row.matched {
+      background: rgba(236, 253, 245, 0.4);
+    }
+
+    .item-thumbnail-box {
+      width: 36px;
+      height: 36px;
+      background: #FFFBEB;
+      border: 1px solid #FEF3C7;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .badge-matched {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--green-bg);
+      color: var(--green);
+      border: 1px solid var(--green-border);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 7px;
+      border-radius: var(--radius-sm);
+    }
+
+    .badge-pending {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--surface-subtle);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 7px;
+      border-radius: var(--radius-sm);
+    }
+
+    .cart-metrics-strip {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+      text-align: center;
+    }
+
+    .metric-mini-box {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 6px;
+    }
+
+    .metric-mini-value {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .metric-mini-label {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .cart-policy-notice {
+      background: #FFFBEB;
+      border: 1px solid #FDE68A;
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: 11px;
+      color: #92400E;
+      line-height: 1.4;
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Middle: Physical Barcode Scanner Console */
+    .scanner-hero-box {
+      border: 2px dashed var(--border-strong);
+      border-radius: var(--radius-md);
+      padding: 24px 20px;
+      text-align: center;
+      background: var(--surface);
+      margin-bottom: 16px;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .scanner-hero-box.active-pulse {
+      border-color: var(--primary);
+      box-shadow: 0 0 16px rgba(255, 85, 0, 0.15);
+    }
+
+    .barcode-graphic {
+      display: inline-block;
+      position: relative;
+      padding: 14px 20px;
+      margin-bottom: 8px;
+    }
+
+    .scanner-bracket-tl, .scanner-bracket-tr, .scanner-bracket-bl, .scanner-bracket-br {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-color: var(--primary);
+    }
+    .scanner-bracket-tl { top: 0; left: 0; border-top: 3px solid; border-left: 3px solid; }
+    .scanner-bracket-tr { top: 0; right: 0; border-top: 3px solid; border-right: 3px solid; }
+    .scanner-bracket-bl { bottom: 0; left: 0; border-bottom: 3px solid; border-left: 3px solid; }
+    .scanner-bracket-br { bottom: 0; right: 0; border-bottom: 3px solid; border-right: 3px solid; }
+
+    .scanner-status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--green);
+      font-weight: 800;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .scanner-laser-line {
+      position: absolute;
+      top: 50%;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: #EF4444;
+      box-shadow: 0 0 8px #EF4444;
+      animation: scanLaser 2.2s infinite ease-in-out;
+      opacity: 0.85;
+    }
+
+    @keyframes scanLaser {
+      0%, 100% { top: 25%; }
+      50% { top: 75%; }
+    }
+
+    /* Verification Progress Bar */
+    .progress-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      margin-bottom: 16px;
+    }
+
+    .progress-head-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 13.5px;
+      font-weight: 800;
+    }
+
+    .progress-bar-track {
+      width: 100%;
+      height: 10px;
+      background: var(--surface-subtle);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10B981, #059669);
+      width: 0%;
+      border-radius: var(--radius-full);
+      transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .progress-sub-label {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* Match Announcement Banner */
+    .match-announcement-card {
+      background: var(--green-bg);
+      border: 1.5px solid var(--green-border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .match-check-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #10B981;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .match-text-main {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--green-dark);
+    }
+
+    .match-text-sub {
+      font-size: 12px;
+      color: var(--green);
+      margin-top: 2px;
+    }
+
+    .audio-feedback-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      color: #1E40AF;
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+
+    /* Scanner Quick Input Row */
+    .scan-input-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .scan-input {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1.5px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .scan-input:focus {
+      border-color: var(--primary);
+    }
+
+    .btn-action-primary {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease;
+    }
+
+    .btn-action-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-action-secondary {
+      background: white;
+      color: var(--text-main);
+      border: 1.5px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease;
+    }
+
+    .btn-action-secondary:hover {
+      background: var(--surface-subtle);
+    }
+
+    /* Right: Verification Status & Discrepancy Card */
+    .status-metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--surface-subtle);
+      font-size: 12.5px;
+    }
+
+    .status-metric-row:last-child {
+      border-bottom: none;
+    }
+
+    .status-metric-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .status-metric-val {
+      font-weight: 800;
+      font-family: var(--font-mono);
+    }
+
+    /* Discrepancy Exception Card */
+    .discrepancy-card {
+      background: var(--red-bg);
+      border: 1.5px solid var(--red-border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-top: 14px;
+      display: none;
+    }
+
+    .discrepancy-card.visible {
+      display: block;
+      animation: shake 0.3s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    .discrepancy-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--red);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .discrepancy-item-name {
+      font-size: 14px;
+      font-weight: 800;
+      color: #7F1D1D;
+      margin-bottom: 2px;
+    }
+
+    .discrepancy-sub {
+      font-size: 11.5px;
+      color: #991B1B;
+      line-height: 1.4;
+      margin-bottom: 12px;
+    }
+
+    .btn-discrepancy-remove {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid var(--red);
+      border-radius: var(--radius-sm);
+      background: white;
+      color: var(--red);
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      margin-bottom: 8px;
+      transition: background 0.15s ease;
+    }
+
+    .btn-discrepancy-remove:hover {
+      background: #FEE2E2;
+    }
+
+    .btn-discrepancy-send {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid #2563EB;
+      border-radius: var(--radius-sm);
+      background: white;
+      color: #2563EB;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .btn-discrepancy-send:hover {
+      background: #DBEAFE;
+    }
+
+    /* =========================================================================
+       CUSTOMER CLEARED CELEBRATION VIEW (Exact match to Reference 1)
+       ========================================================================= */
+    .cleared-container {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px 32px;
+      box-shadow: var(--shadow-sm);
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .cleared-hero-banner {
+      text-align: center;
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    .cleared-big-check {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #10B981;
+      color: #FFFFFF;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 38px;
+      font-weight: 900;
+      box-shadow: 0 0 24px rgba(16, 185, 129, 0.35);
+      margin-bottom: 12px;
+    }
+
+    .cleared-title {
+      font-size: 28px;
+      font-weight: 900;
+      color: #15803D;
+      letter-spacing: -0.02em;
+    }
+
+    .cleared-sub {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .cleared-stat-heading {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0F172A;
+      margin-top: 10px;
+      font-family: var(--font-mono);
+    }
+
+    /* 4-Pill Status Banner */
+    .cleared-pills-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .cleared-pill-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .cleared-pill-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #10B981;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .cleared-pill-text-top {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .cleared-pill-text-bot {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #15803D;
+    }
+
+    /* Cleared 2-Column Details */
+    .cleared-details-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .cleared-summary-list {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .cleared-summary-header {
+      background: var(--surface-subtle);
+      padding: 10px 14px;
+      font-size: 11.5px;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .cleared-summary-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--surface-subtle);
+      font-size: 13px;
+    }
+
+    .cleared-summary-footer {
+      background: var(--green-bg);
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 12.5px;
+      font-weight: 800;
+      color: var(--green-dark);
+    }
+
+    /* Performance & Exit Callout */
+    .perf-card {
+      background: #F8FAFC;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .perf-icon-circle {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #10B981;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .perf-time-val {
+      font-size: 24px;
+      font-weight: 900;
+      color: #0F172A;
+      font-family: var(--font-mono);
+      line-height: 1;
+    }
+
+    .exit-banner {
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .exit-icon-circle {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #16A34A;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .btn-complete-cta {
+      width: 100%;
+      padding: 16px 24px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: background 0.15s ease, transform 0.1s ease;
+      box-shadow: 0 4px 14px rgba(255, 85, 0, 0.3);
+    }
+
+    .btn-complete-cta:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .complete-helper-note {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    /* =========================================================================
+       INCOMING ORDERS / ACTIVE QUEUE DOCK
+       ========================================================================= */
+    .incoming-queue-bar {
+      margin-bottom: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .queue-chips-list {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      flex: 1;
+    }
+
+    .order-queue-chip {
+      background: var(--surface-subtle);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .order-queue-chip:hover, .order-queue-chip.active {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+
+    /* =========================================================================
+       OTHER TABS: COUNTERS, TRANSACTIONS, CATALOG, SETTINGS
+       ========================================================================= */
+    .data-table-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .data-table-toolbar {
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .data-table th {
+      background: var(--surface-subtle);
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+
+    .data-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-main);
+    }
+
+    .data-table tr:hover td {
+      background: #F8FAFC;
+    }
+
+    /* Bottom Status Footer */
+    footer.terminal-footer {
+      background: #FFFFFF;
+      border-top: 1px solid var(--border);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    /* Modal Sheet */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(6px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-dialog {
+      background: white;
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 520px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 800;
+      font-size: 16px;
+    }
+
+    .modal-body {
+      padding: 20px;
+      max-height: 75vh;
+      overflow-y: auto;
+    }
+
+    /* Admin Login Modal */
+    .admin-login-card {
+      background: white;
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 440px;
+      box-shadow: var(--shadow-xl);
+      overflow: hidden;
+      padding: 32px 28px;
+    }
+    .admin-login-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .admin-login-icon {
+      font-size: 38px;
+      margin-bottom: 8px;
+    }
+    .admin-login-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+    .admin-login-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .admin-login-error {
+      background: #FEF2F2;
+      border: 1px solid #FCA5A5;
+      color: #B91C1C;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 12.5px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    .admin-form-group {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+    .admin-form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .admin-input {
+      width: 100%;
+      padding: 11px 14px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border);
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text-main);
+      background: var(--surface-subtle);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      box-sizing: border-box;
+    }
+    .admin-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: #FFFFFF;
+      box-shadow: 0 0 0 3px rgba(255, 85, 0, 0.12);
+    }
+    .btn-admin-submit {
+      width: 100%;
+      padding: 13px;
+      border-radius: var(--radius-sm);
+      background: var(--primary);
+      color: #FFFFFF;
+      border: none;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.18s ease;
+      margin-top: 8px;
+    }
+    .btn-admin-submit:hover {
+      background: var(--primary-hover);
+    }
+    .admin-demo-chips {
+      margin-top: 20px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      text-align: left;
+    }
+    .admin-chip-label {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .admin-chip-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .demo-chip {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xs);
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s ease;
+    }
+    .demo-chip:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .toast-pill {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: #0F172A;
+      color: #FFFFFF;
+      padding: 11px 20px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+      z-index: 99999;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      transition: all 0.2s ease;
+    }
+  </style>
+
+</head>
+<body>
+
+  <!-- =======================================================================
+       LEFT SIDEBAR
+       ======================================================================= -->
+  <aside class="sidebar">
+    <div>
+      <div class="brand-header">
+        <a href="/admin" class="brand-logo">
+          <span class="brand-bolt">⚡</span>ShopFast
+        </a>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-tab="tab-verify" onclick="switchAdminTab('tab-verify')">
+          <span class="nav-icon">🔍</span>
+          <span>Verify Customer</span>
+        </button>
+
+        <button class="nav-item" data-tab="tab-counters" onclick="switchAdminTab('tab-counters')">
+          <span class="nav-icon">🏠</span>
+          <span>Counter</span>
+        </button>
+
+        <button class="nav-item" data-tab="tab-transactions" onclick="switchAdminTab('tab-transactions')">
+          <span class="nav-icon">📄</span>
+          <span>Today's Transactions</span>
+        </button>
+
+        <button class="nav-item" data-tab="tab-catalog" onclick="switchAdminTab('tab-catalog')">
+          <span class="nav-icon">📦</span>
+          <span>Inventory Catalog</span>
+        </button>
+
+        <button class="nav-item" data-tab="tab-settings" onclick="switchAdminTab('tab-settings')">
+          <span class="nav-icon">⚙️</span>
+          <span>Settings</span>
+        </button>
+      </nav>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="counter-badge-card">
+        <div>
+          <div class="counter-label" id="sidebarCounterLabel">Counter 03</div>
+          <div style="font-size:11px; color:#64748B;">Express Lane (≤ 5 items)</div>
+        </div>
+        <div class="status-dot-pill">
+          <span class="status-dot"></span>
+          <span id="sidebarWsStatus">Online</span>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; gap:6px;">
+        <button type="button" onclick="switchStationPrompt()" class="btn-action-secondary" style="font-size:10.5px; padding:4px 8px; color:var(--sb-text); border-color:var(--sb-border); background:var(--sb-surface); cursor:pointer;">
+          ⇄ Switch Counter
+        </button>
+        <button type="button" onclick="adminLogout()" class="btn-action-secondary" style="font-size:10.5px; padding:4px 8px; color:#F87171; border-color:#7F1D1D; background:rgba(220,38,38,0.1); cursor:pointer;">
+          Log Out ⏻
+        </button>
+      </div>
+      <a href="/" style="display:block; text-align:center; font-size:11px; color:#64748B; margin-top:10px; text-decoration:none;">
+        Customer Self-Checkout App ↗
+      </a>
+    </div>
+  </aside>
+
+  <!-- =======================================================================
+       MAIN VIEWPORT
+       ======================================================================= -->
+  <main class="main-viewport">
+
+    <!-- Top Navy Control Header -->
+    <header class="terminal-header">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <a href="/" class="btn-action-secondary" style="text-decoration:none; display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; padding:6px 12px; color:var(--text-main); border-color:var(--border-strong); background:var(--surface);" title="Go to Customer Self-Checkout">
+          ← Return to Store
+        </a>
+        <div class="header-titles">
+          <h1>ShopFast Verification</h1>
+          <p id="headerSubtitle">Sai Supermarket • Counter 03</p>
+        </div>
+      </div>
+
+      <div class="header-chips-row">
+        <div class="pill-chip status-active" id="headerStatusPill">
+          ● VERIFICATION IN PROGRESS
+        </div>
+        <div class="pill-chip order-tag" id="headerOrderPill">
+          Order #--
+        </div>
+        <div class="pill-chip payment-tag" id="headerPaymentPill">
+          Payment ₹0 PAID ✓
+        </div>
+
+        <div class="header-clock" id="liveHeaderClock">
+          11:24 AM<br><span style="font-size:10px; opacity:0.8;">28 May 2025</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- =====================================================================
+         TAB 1: VERIFICATION DESK (MATCHING REFERENCE 1 & 2)
+         ===================================================================== -->
+    <section id="tab-verify" class="tab-content active">
+
+      <!-- Incoming Orders Alert Strip -->
+      <div class="incoming-queue-bar">
+        <div style="font-size:12.5px; font-weight:800; color:var(--text-main); display:flex; align-items:center; gap:6px;">
+          <span>⚡ Live Queue:</span>
+        </div>
+        <div class="queue-chips-list" id="incomingOrdersChipList">
+          <span style="font-size:12px; color:var(--text-muted);">Waiting for next paid customer...</span>
+        </div>
+        <button class="btn-action-secondary" style="padding:6px 10px; font-size:11.5px;" onclick="loadActiveOrders()">
+          ↻ Refresh
+        </button>
+      </div>
+
+      <!-- STATE A: ACTIVE VERIFICATION IN PROGRESS (Exact match to Reference 2) -->
+      <div id="activeVerificationView" class="verification-grid">
+
+        <!-- COLUMN 1: CUSTOMER'S PAID CART -->
+        <div class="pos-card">
+          <div class="pos-card-header">
+            <span class="pos-card-title">Customer's Paid Cart</span>
+            <span class="cart-locked-tag">🔒 CART LOCKED</span>
+          </div>
+
+          <table class="cart-items-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th style="text-align:center;">Exp</th>
+                <th style="text-align:center;">Ver</th>
+                <th style="text-align:right;">Status</th>
+              </tr>
+            </thead>
+            <tbody id="cartItemsTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+
+          <div class="cart-metrics-strip">
+            <div class="metric-mini-box">
+              <div class="metric-mini-value" id="metricItemsExpected">0</div>
+              <div class="metric-mini-label">Expected</div>
+            </div>
+            <div class="metric-mini-box">
+              <div class="metric-mini-value" id="metricItemsVerified" style="color:var(--green);">0</div>
+              <div class="metric-mini-label">Verified</div>
+            </div>
+            <div class="metric-mini-box">
+              <div class="metric-mini-value" id="metricItemsRemaining" style="color:var(--orange);">0</div>
+              <div class="metric-mini-label">Remaining</div>
+            </div>
+          </div>
+
+          <div class="cart-policy-notice">
+            <span style="font-size:16px;">🔒</span>
+            <div>
+              <b>Cart Locked:</b> Only items included in this transaction can be processed through ShopFast verification. Do not add new products or collect additional payment at this counter.
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUMN 2: SCAN PHYSICAL ITEMS -->
+        <div class="pos-card">
+          <div class="pos-card-header">
+            <span class="pos-card-title">Scan Physical Items</span>
+            <button type="button" class="btn-action-secondary" id="adminCameraToggleBtn" style="padding:4px 8px; font-size:11px;" onclick="toggleCameraScanner()">
+              📷 Camera Scanner
+            </button>
+          </div>
+
+          <!-- Camera Feed Container -->
+          <div id="cameraScannerBox" style="display:none; margin-bottom:14px; border-radius:var(--radius-md); overflow:hidden; border:2px solid var(--primary); background:#0F172A;">
+            <div style="background:#1E293B; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1);">
+              <div style="font-size:11px; font-weight:700; color:#F1F5F9; display:flex; align-items:center; gap:6px;">
+                <span class="status-dot" style="background:#10B981; width:8px; height:8px; border-radius:50%; display:inline-block;"></span>
+                <span id="adminScannerStatusLabel">Camera Scanner Active</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <select id="adminCameraSelect" onchange="switchAdminCamera(this.value)" style="display:none; background:#0F172A; color:#E2E8F0; border:1px solid #334155; border-radius:4px; font-size:10px; padding:2px 6px;">
+                </select>
+                <button type="button" onclick="switchAdminCameraNext()" title="Switch Camera" class="btn-action-secondary" style="padding:2px 6px; font-size:11px; color:#E2E8F0; border-color:#475569; background:transparent;">
+                  🔄 Switch
+                </button>
+                <button type="button" onclick="toggleCameraScanner()" title="Close Camera" style="background:transparent; border:none; color:#94A3B8; font-size:14px; cursor:pointer; padding:0 4px;">
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div id="adminReader" style="width:100%; min-height:220px; background:#0B0F19; position:relative; overflow:hidden;"></div>
+            <div id="adminCameraErrorBox" style="display:none; padding:16px; text-align:center; color:#F87171; font-size:12px;">
+              <div style="font-size:24px; margin-bottom:6px;">📷⚠️</div>
+              <div id="adminCameraErrorText" style="font-weight:600; margin-bottom:6px;">Camera unavailable</div>
+              <p style="font-size:11px; color:#94A3B8; margin-bottom:12px;">If camera is open in the Customer tab, stop it there first so the webcam can be accessed here.</p>
+              <button type="button" onclick="startAdminCamera()" class="btn-action-secondary" style="padding:4px 10px; font-size:11px;">
+                Retry Camera
+              </button>
+            </div>
+          </div>
+
+          <!-- Animated Scanner Target Hero -->
+          <div class="scanner-hero-box" id="scannerHeroTarget">
+            <div class="scanner-bracket-tl"></div>
+            <div class="scanner-bracket-tr"></div>
+            <div class="scanner-bracket-bl"></div>
+            <div class="scanner-bracket-br"></div>
+            <div class="scanner-laser-line"></div>
+
+            <div class="barcode-graphic">
+              <span style="font-size:48px; letter-spacing:4px; font-family:var(--font-mono); color:var(--text-main);">||| | || |||</span>
+            </div>
+
+            <div class="scanner-status-indicator">
+              <span class="status-dot"></span>
+              <span>SCANNER READY</span>
+            </div>
+            <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Scan every item in customer's basket with barcode gun or camera.</p>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="progress-card">
+            <div class="progress-head-row">
+              <span id="progressBarCountText">0 / 0 ITEMS VERIFIED</span>
+              <span id="progressBarPercentText" style="color:var(--green); font-family:var(--font-mono);">0%</span>
+            </div>
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" id="progressBarFill"></div>
+            </div>
+            <div class="progress-sub-label" id="progressBarRemainingLabel">Waiting for scan...</div>
+          </div>
+
+          <!-- Real-Time Match Announcement -->
+          <div class="match-announcement-card" id="matchAnnouncementCard" style="display:none;">
+            <div class="match-check-circle">✓</div>
+            <div>
+              <div class="match-text-main" id="matchAnnouncementTitle">ITEM MATCHED</div>
+              <div class="match-text-sub" id="matchAnnouncementSub">Item verified successfully</div>
+            </div>
+          </div>
+
+          <!-- Sound Feedback Pill -->
+          <div class="audio-feedback-chip" style="margin-bottom:12px;">
+            <span>🔊</span>
+            <span id="audioFeedbackText">Ready. Audio feedback enabled for scans.</span>
+          </div>
+
+          <!-- Barcode Input Box (supports physical barcode gun keystrokes + manual input) -->
+          <div class="scan-input-group">
+            <input type="text" id="manualBarcodeInput" class="scan-input" placeholder="Scan barcode or enter SKU..." autofocus onkeydown="handleBarcodeKey(event)">
+            <button class="btn-action-primary" onclick="submitManualBarcode()">
+              Scan Item
+            </button>
+          </div>
+
+          <!-- 1-Tap Demo Quick Scan Chips -->
+          <div style="margin-top:14px;">
+            <div style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:6px;">QUICK-SCAN BASKET SHORTCUTS:</div>
+            <div id="quickScanItemsContainer" style="display:flex; flex-wrap:wrap; gap:6px;">
+              <!-- Quick scan buttons -->
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUMN 3: VERIFICATION STATUS & DISCREPANCY -->
+        <div class="pos-card">
+          <div class="pos-card-header">
+            <span class="pos-card-title">Verification Status</span>
+          </div>
+
+          <div class="status-metric-row">
+            <span class="status-metric-label">📦 Items</span>
+            <span class="status-metric-val" id="statItemsRatio">0 / 0</span>
+          </div>
+          <div class="status-metric-row">
+            <span class="status-metric-label" style="color:var(--green);">✓ Matched</span>
+            <span class="status-metric-val" id="statMatchedCount" style="color:var(--green);">0</span>
+          </div>
+          <div class="status-metric-row">
+            <span class="status-metric-label" style="color:var(--red);">⚠️ Flagged</span>
+            <span class="status-metric-val" id="statFlaggedCount" style="color:var(--red);">0</span>
+          </div>
+          <div class="status-metric-row">
+            <span class="status-metric-label" style="color:var(--orange);">🔄 Remaining</span>
+            <span class="status-metric-val" id="statRemainingCount" style="color:var(--orange);">0</span>
+          </div>
+          <div class="status-metric-row">
+            <span class="status-metric-label">💳 Payment</span>
+            <span class="status-metric-val" style="color:var(--green);">✓ Verified</span>
+          </div>
+          <div class="status-metric-row">
+            <span class="status-metric-label">🔒 Cart</span>
+            <span class="status-metric-val" style="color:var(--orange);">🔒 Locked</span>
+          </div>
+          <div class="status-metric-row">
+            <span class="status-metric-label">⏱️ Verification</span>
+            <span class="status-metric-val" id="statVerifStatusText" style="color:#2563EB;">In Progress</span>
+          </div>
+
+          <!-- Discrepancy Exception Card (Exact match to Reference 2) -->
+          <div class="discrepancy-card" id="discrepancyCard">
+            <div class="discrepancy-title">⚠️ ITEM NOT IN PAID CART</div>
+            <div class="discrepancy-item-name" id="discrepancyItemName">Coca-Cola 750ml</div>
+            <div class="discrepancy-sub">NOT EXPECTED IN THIS TRANSACTION<br>Do not add this item to the ShopFast transaction.</div>
+            <button class="btn-discrepancy-remove" onclick="resolveDiscrepancy('REMOVE_AND_CONTINUE')">
+              🗑️ Remove Item & Continue
+            </button>
+            <button class="btn-discrepancy-send" onclick="resolveDiscrepancy('SEND_TO_REGULAR_CHECKOUT')">
+              🛒 Send to Regular Checkout
+            </button>
+          </div>
+
+          <button class="btn-action-secondary" style="width:100%; margin-top:16px; font-size:12px;" onclick="simulateUnexpectedScan()">
+            ⚡ Test Unmatched Item Scan
+          </button>
+        </div>
+
+      </div>
+
+      <!-- STATE B: CUSTOMER CLEARED CELEBRATION (Exact match to Reference 1) -->
+      <div id="customerClearedView" class="cleared-container">
+        <div class="cleared-hero-banner">
+          <div class="cleared-big-check">✓</div>
+          <h2 class="cleared-title">CUSTOMER CLEARED</h2>
+          <p class="cleared-sub">All items have been successfully verified against the paid ShopFast cart.</p>
+          <div class="cleared-stat-heading" id="clearedItemsRatioTitle">4 / 4 ITEMS MATCHED</div>
+        </div>
+
+        <!-- 4-Pill Status Row -->
+        <div class="cleared-pills-row">
+          <div class="cleared-pill-card">
+            <div class="cleared-pill-icon">💳</div>
+            <div>
+              <div class="cleared-pill-text-top">Payment</div>
+              <div class="cleared-pill-text-bot">✓ VERIFIED</div>
+            </div>
+          </div>
+
+          <div class="cleared-pill-card">
+            <div class="cleared-pill-icon">🔒</div>
+            <div>
+              <div class="cleared-pill-text-top">Cart</div>
+              <div class="cleared-pill-text-bot">🔒 LOCKED</div>
+            </div>
+          </div>
+
+          <div class="cleared-pill-card">
+            <div class="cleared-pill-icon">🧺</div>
+            <div>
+              <div class="cleared-pill-text-top">Items</div>
+              <div class="cleared-pill-text-bot" id="clearedItemsPillRatio">✓ 4 / 4 MATCHED</div>
+            </div>
+          </div>
+
+          <div class="cleared-pill-card">
+            <div class="cleared-pill-icon">🛡️</div>
+            <div>
+              <div class="cleared-pill-text-top">Verification</div>
+              <div class="cleared-pill-text-bot">✓ COMPLETE</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2 Column Layout -->
+        <div class="cleared-details-grid">
+          <div>
+            <div class="cleared-summary-list">
+              <div class="cleared-summary-header">VERIFIED CART SUMMARY</div>
+              <div id="clearedSummaryRowsList">
+                <!-- Verified item rows -->
+              </div>
+              <div class="cleared-summary-footer">
+                <span id="clearedTotalItemsCount">🧺 Total Items: 4</span>
+                <span id="clearedTotalAmountPaid">Amount Paid: ₹560</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="perf-card">
+              <div class="perf-icon-circle">⏱️</div>
+              <div>
+                <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Verification Performance</div>
+                <div class="perf-time-val" id="clearedDurationVal">17 sec</div>
+                <div style="font-size:12px; color:var(--text-muted);" id="clearedPerformanceItems">4 items verified</div>
+              </div>
+            </div>
+
+            <div class="exit-banner">
+              <div class="exit-icon-circle">🚪</div>
+              <div>
+                <div style="font-size:15px; font-weight:800; color:#15803D;">Customer may now exit.</div>
+                <div style="font-size:12px; color:#166534; margin-top:2px;">Please return the customer's Fast-Pass/receipt and allow them to proceed to the exit.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Primary CTA to Finish -->
+        <button class="btn-complete-cta" onclick="finishAndResetVerification()">
+          ✓ Complete & Start Next Verification →
+        </button>
+        <p class="complete-helper-note">This will close the current transaction and return to scan mode.</p>
+      </div>
+
+    </section>
+
+    <!-- =====================================================================
+         TAB 2: COUNTER INTELLIGENCE & METRICS
+         ===================================================================== -->
+    <section id="tab-counters" class="tab-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <div>
+          <h2 style="font-size:20px; font-weight:800;">Checkout Registers & Queue Intelligence</h2>
+          <p style="font-size:13px; color:var(--text-muted);">Real-time throughput, cashier speed factor, and active wait times.</p>
+        </div>
+        <button class="btn-action-primary" onclick="loadCountersData()">↻ Refresh Counters</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px;" id="countersCardsGrid">
+        <!-- Populated via API -->
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         TAB 3: TODAY'S TRANSACTIONS AUDIT
+         ===================================================================== -->
+    <section id="tab-transactions" class="tab-content">
+      <!-- Live Store KPI Strip (Requirement 6: Total sales/revenue) -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:16px;">
+        <div class="pos-card" style="padding:14px; border-left:4px solid var(--primary);">
+          <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Overall Total Revenue</div>
+          <div style="font-size:22px; font-weight:800; font-family:var(--font-mono); color:var(--primary); margin-top:4px;" id="kpiTotalSales">₹0.00</div>
+          <div style="font-size:11px; color:#64748B; margin-top:2px;">System-wide revenue</div>
+        </div>
+        <div class="pos-card" style="padding:14px; border-left:4px solid #2563EB;">
+          <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Today's Orders</div>
+          <div style="font-size:22px; font-weight:800; font-family:var(--font-mono); color:#2563EB; margin-top:4px;" id="kpiTodayOrders">0</div>
+          <div style="font-size:11px; color:#64748B; margin-top:2px;">Completed transactions</div>
+        </div>
+        <div class="pos-card" style="padding:14px; border-left:4px solid #10B981;">
+          <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Cleared at Counters</div>
+          <div style="font-size:22px; font-weight:800; font-family:var(--font-mono); color:#10B981; margin-top:4px;" id="kpiVerifiedOrders">0</div>
+          <div style="font-size:11px; color:#64748B; margin-top:2px;">Fast-Pass cleared</div>
+        </div>
+        <div class="pos-card" style="padding:14px; border-left:4px solid #D97706;">
+          <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Queue Wait Length</div>
+          <div style="font-size:22px; font-weight:800; font-family:var(--font-mono); color:#D97706; margin-top:4px;" id="kpiActiveQueue">0</div>
+          <div style="font-size:11px; color:#64748B; margin-top:2px;">Active in store</div>
+        </div>
+      </div>
+
+      <div class="data-table-card">
+        <div class="data-table-toolbar">
+          <div style="display:flex; gap:10px; align-items:center; flex:1;">
+            <input type="text" id="txSearchInput" placeholder="Search Order # or Customer..." class="scan-input" style="max-width:260px;" oninput="onTxSearchChange(this.value)">
+            <select id="txFilterCounter" class="scan-input" style="max-width:150px;" onchange="loadTransactionsData()">
+              <option value="">All Counters</option>
+              <option value="01">Counter 01</option>
+              <option value="02">Counter 02</option>
+              <option value="03">Counter 03</option>
+              <option value="04">Counter 04</option>
+              <option value="07">Counter 07</option>
+            </select>
+            <select id="txFilterStatus" class="scan-input" style="max-width:160px;" onchange="loadTransactionsData()">
+              <option value="">All Statuses</option>
+              <option value="VERIFIED">Cleared / Verified</option>
+              <option value="PENDING">Pending Verification</option>
+              <option value="FLAGGED">Flagged Discrepancies</option>
+            </select>
+          </div>
+          <button class="btn-action-secondary" onclick="loadTransactionsData()">↻ Reload Ledger</button>
+        </div>
+
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Customer</th>
+              <th>Counter</th>
+              <th>Items</th>
+              <th>Amount</th>
+              <th>Payment</th>
+              <th>Status</th>
+              <th>Duration</th>
+              <th>Time</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="transactionsTableBody">
+            <!-- Populated via API -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         TAB 4: INVENTORY CATALOG MANAGER
+         ===================================================================== -->
+    <section id="tab-catalog" class="tab-content">
+      <div class="data-table-card">
+        <div class="data-table-toolbar">
+          <div style="font-size:14px; font-weight:800;">Store Products & Price Management</div>
+          <button class="btn-action-secondary" onclick="loadCatalogData()">↻ Refresh Inventory</button>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Barcode</th>
+              <th>Category</th>
+              <th>Price (₹)</th>
+              <th style="text-align:center;">Initial Stock</th>
+              <th style="text-align:center;">Current Stock</th>
+              <th style="text-align:center;">Stock Change</th>
+              <th>Status</th>
+              <th style="text-align:right;">Quick Update</th>
+            </tr>
+          </thead>
+          <tbody id="catalogTableBody">
+            <!-- Populated via API -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         TAB 5: SETTINGS & TERMINAL CONFIG
+         ===================================================================== -->
+    <section id="tab-settings" class="tab-content">
+      <div class="pos-card" style="max-width:600px;">
+        <h3 style="font-size:16px; font-weight:800; margin-bottom:14px;">Cashier POS Register Settings</h3>
+
+        <div style="margin-bottom:16px;">
+          <label style="display:block; font-size:12.5px; font-weight:700; margin-bottom:6px;">Assigned Checkout Counter:</label>
+          <select id="settingCounterSelect" class="scan-input" style="width:100%;" onchange="onCounterChange(this.value)">
+            <option value="01">Register 01 (Regular Checkout)</option>
+            <option value="02">Register 02 (Regular Checkout)</option>
+            <option value="03" selected>Express Lane 03 (Fast-Pass ≤ 5 Items)</option>
+            <option value="04">Register 04 (Regular Checkout)</option>
+            <option value="07">Fast-Track Counter 07 (Express)</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <label style="display:block; font-size:12.5px; font-weight:700; margin-bottom:6px;">Audio Synthesizer Sound Feedback:</label>
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+            <input type="checkbox" id="settingAudioCheckbox" checked onchange="toggleAudioSetting(this.checked)">
+            <span>Enable crisp checkout beeps & clearance chimes</span>
+          </label>
+        </div>
+
+        <div style="border-top:1px solid var(--border); padding-top:14px; margin-top:14px;">
+          <button class="btn-action-primary" onclick="testAudioBeep()">🔊 Test Retail Scanner Beep</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Footer Security note (Exact match to Reference 1 & 2) -->
+    <footer class="terminal-footer">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span>🛡️</span>
+        <span><b>ShopFast Security Check:</b> Payment + Physical Items Verified</span>
+      </div>
+      <div>Thank you for ensuring a fast and secure verification experience.</div>
+    </footer>
+
+  </main>
+
+  <!-- =======================================================================
+       ORDER RECEIPT INSPECTION MODAL
+       ======================================================================= -->
+  <div class="modal-overlay" id="orderModalOverlay" onclick="closeOrderModal(event)">
+    <div class="modal-dialog" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span id="modalOrderTitle">Order Details</span>
+        <button onclick="closeOrderModal()" style="background:none; border:none; font-size:18px; cursor:pointer;">✕</button>
+      </div>
+      <div class="modal-body" id="modalOrderBody">
+        <!-- Order details populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       ADMIN STATION LOGIN MODAL (IN-PLACE RBAC AUTHENTICATION)
+       ======================================================================= -->
+  <div class="modal-overlay" id="adminLoginModalOverlay" style="display:none;">
+    <div class="admin-login-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <a href="/" class="btn-action-secondary" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; padding:4px 8px; color:var(--text-main); border-color:var(--border-strong); background:var(--surface);">
+          ← Landing Page
+        </a>
+        <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">Sai Supermarket POS</span>
+      </div>
+      <div class="admin-login-header">
+        <div class="admin-login-icon">🛡️</div>
+        <h2 class="admin-login-title">Cashier Station Login</h2>
+        <p class="admin-login-subtitle">ShopFast Express Verification Terminal</p>
+      </div>
+      <div id="adminLoginError" class="admin-login-error" style="display:none;"></div>
+      <form id="adminLoginForm" onsubmit="handleAdminLoginSubmit(event)">
+        <div class="admin-form-group">
+          <label for="adminUsernameInput">Staff / Cashier ID</label>
+          <input type="text" id="adminUsernameInput" class="admin-input" placeholder="e.g. admin3 or staff01" required autocomplete="username">
+        </div>
+        <div class="admin-form-group">
+          <label for="adminPinInput">Security PIN</label>
+          <input type="password" id="adminPinInput" class="admin-input" placeholder="e.g. 333333 or 1234" required autocomplete="current-password">
+        </div>
+        <div class="admin-form-group">
+          <label for="adminCounterSelect">Assigned Counter Station</label>
+          <select id="adminCounterSelect" class="admin-input">
+            <option value="01">Counter 01 (Express Lane)</option>
+            <option value="02">Counter 02 (Express Lane)</option>
+            <option value="03" selected>Counter 03 (Primary Station)</option>
+            <option value="04">Counter 04 (Express Lane)</option>
+            <option value="07">Counter 07 (Supervisor Station)</option>
+          </select>
+        </div>
+        <button type="submit" id="btnAdminLoginSubmit" class="btn-admin-submit">
+          Authenticate Station →
+        </button>
+      </form>
+      <div class="admin-demo-chips">
+        <div class="admin-chip-label">Quick Demo Access:</div>
+        <div class="admin-chip-row">
+          <button type="button" class="demo-chip" onclick="fillAdminCreds('admin3', '333333', '03')">
+            ⚡ Store Admin (admin3 / 333333)
+          </button>
+          <button type="button" class="demo-chip" onclick="fillAdminCreds('staff01', '1234', '01')">
+            ⚡ Cashier 01 (staff01 / 1234)
+          </button>
+        </div>
+      </div>
+      <div style="margin-top:14px; text-align:center;">
+        <a href="/" style="font-size:12px; color:var(--text-muted); text-decoration:none;">← Return to Store Showcase</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Toast Notification -->
+  <div id="adminToastPill" class="toast-pill" style="display:none;">
+    <span id="adminToastIcon">⚡</span>
+    <span id="adminToastText">Notification</span>
+  </div>
+
+  <!-- =======================================================================
+       FRONTEND LOGIC & REAL-TIME WEBSOCKET INTEGRATION
+       ======================================================================= -->
+  <script>
+
+    /* =========================================================================
+       1. GLOBAL STATE & CONFIG
+       ========================================================================= */
+    let authToken = localStorage.getItem('SHOPFAST_TOKEN') || null;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialCounter = urlParams.get('counter') || localStorage.getItem('SHOPFAST_COUNTER') || '01';
+
+    let counterSwitchSeq = 0;
+    let adminToastTimer = null;
+
+    const state = {
+      counterNumber: initialCounter,
+      storeName: 'Sai Supermarket',
+      activeOrder: null,
+      verificationStartTime: null,
+      verificationElapsedSeconds: 17,
+      timerInterval: null,
+      audioEnabled: true,
+      cameraActive: false,
+      html5QrCode: null,
+      ws: null,
+      discrepancyActive: false
+    };
+
+    function getApiBase() {
+      if (window.SHOPFAST_API_BASE) return window.SHOPFAST_API_BASE;
+      try {
+        const stored = localStorage.getItem('SHOPFAST_API_BASE');
+        if (stored) return stored;
+      } catch (_) {}
+      const port = window.location.port;
+      if (port === '5500' || port === '3000' || port === '5173') {
+        return `${window.location.protocol === 'https:' ? 'https:' : 'http:'}//127.0.0.1:8000`;
+      }
+      return window.location.origin;
+    }
+    const API_BASE = getApiBase();
+
+    function showToast(msg, isError = false) {
+      const pill = document.getElementById('adminToastPill');
+      const txt = document.getElementById('adminToastText');
+      const icon = document.getElementById('adminToastIcon');
+      if (!pill || !txt) return;
+      txt.textContent = msg;
+      if (icon) icon.textContent = isError ? '⚠️' : '✓';
+      pill.style.background = isError ? '#DC2626' : '#0F172A';
+      pill.style.display = 'flex';
+      clearTimeout(adminToastTimer);
+      adminToastTimer = setTimeout(() => {
+        pill.style.display = 'none';
+      }, 3000);
+    }
+
+
+    function showAdminLoginModal(errorMessage = '') {
+      const modal = document.getElementById('adminLoginModalOverlay');
+      if (!modal) return;
+      const errEl = document.getElementById('adminLoginError');
+      if (errEl) {
+        if (errorMessage) {
+          errEl.textContent = errorMessage;
+          errEl.style.display = 'block';
+        } else {
+          errEl.style.display = 'none';
+        }
+      }
+      const select = document.getElementById('adminCounterSelect');
+      if (select) select.value = state.counterNumber || '03';
+      modal.style.display = 'flex';
+      setTimeout(() => {
+        const inp = document.getElementById('adminUsernameInput');
+        if (inp) inp.focus();
+      }, 100);
+    }
+
+    function fillAdminCreds(u, p, c) {
+      document.getElementById('adminUsernameInput').value = u;
+      document.getElementById('adminPinInput').value = p;
+      if (c && document.getElementById('adminCounterSelect')) {
+        document.getElementById('adminCounterSelect').value = c;
+      }
+    }
+
+    async function handleAdminLoginSubmit(e) {
+      e.preventDefault();
+      const username = document.getElementById('adminUsernameInput').value.trim();
+      const pin = document.getElementById('adminPinInput').value.trim();
+      const counter = document.getElementById('adminCounterSelect').value;
+      const errEl = document.getElementById('adminLoginError');
+      const submitBtn = document.getElementById('btnAdminLoginSubmit');
+
+      errEl.style.display = 'none';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Verifying credentials...';
+
+      try {
+        const data = await apiRequest('/api/v1/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ username, pin })
+        });
+        if (data.role !== 'admin' && data.role !== 'staff') {
+          throw new Error('Access denied: Staff or Admin role required for Terminal access.');
+        }
+
+        authToken = data.token;
+        const effectiveCounter = data.counter_number || counter;
+        localStorage.setItem('SHOPFAST_TOKEN', authToken);
+        localStorage.setItem('SHOPFAST_COUNTER', effectiveCounter);
+        state.counterNumber = effectiveCounter;
+        state.userCounter = data.counter_number || null;
+        state.userRole = data.role;
+        state.username = data.username;
+
+        document.getElementById('adminLoginModalOverlay').style.display = 'none';
+        initAdminTerminal();
+        showToast(`Authenticated as ${data.display_name || username} at Counter ${effectiveCounter}`);
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Authenticate Station →';
+      }
+    }
+
+    function switchStationPrompt() {
+      const counters = ['01', '02', '03', '04', '07'];
+      const chosen = prompt(`Enter Counter Station number to operate (${counters.join(', ')}):`, state.counterNumber);
+      if (chosen && counters.includes(chosen.trim())) {
+        onCounterChange(chosen.trim());
+      }
+    }
+
+    function adminLogout() {
+      localStorage.removeItem('SHOPFAST_TOKEN');
+      localStorage.removeItem('SHOPFAST_COUNTER');
+      authToken = null;
+      state.activeOrder = null;
+      state.discrepancyActive = false;
+      state.verificationStartTime = null;
+      state.userCounter = null;
+      resetVerificationUIForCounter('00');
+      if (state.ws) {
+        try { state.ws.close(); } catch (_) {}
+      }
+      try {
+        history.replaceState({ loggedOut: true }, '', '/admin#login');
+      } catch (_) {}
+      showAdminLoginModal('Logged out. Please sign in to access terminal.');
+    }
+
+    async function apiRequest(path, options = {}, retries = 2) {
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+      };
+      let res;
+      try {
+        res = await fetch(API_BASE + path, {
+          headers,
+          ...options
+        });
+      } catch (networkErr) {
+        if (retries > 0) {
+          await new Promise(r => setTimeout(r, 1200));
+          return apiRequest(path, options, retries - 1);
+        }
+        throw networkErr;
+      }
+
+      if ((res.status === 502 || res.status === 503 || res.status === 504) && retries > 0) {
+        await new Promise(r => setTimeout(r, 1500));
+        return apiRequest(path, options, retries - 1);
+      }
+
+      if (!res.ok) {
+        let errDetail = 'Request failed (' + res.status + ')';
+        try {
+          const json = await res.json();
+          if (json.detail) errDetail = json.detail;
+        } catch (_) {}
+        if (res.status === 401) {
+          showAdminLoginModal('Session expired or unauthorized. Please authenticate station.');
+        }
+        const err = new Error(errDetail);
+        err.status = res.status;
+        throw err;
+      }
+      return res.status === 204 ? null : res.json();
+    }
+
+    /* =========================================================================
+       2. REALISTIC SOUND SYNTHESIZER (Web Audio API)
+       ========================================================================= */
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) audioCtx = new AudioContext();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playSound(type = 'beep') {
+      if (!state.audioEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+
+        if (type === 'beep') {
+          // Sharp supermarket checkout scanner beep (2500Hz)
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(2500, now);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.08);
+        } else if (type === 'cleared') {
+          // 2-tone melodic celebration chord
+          [523.25, 659.25, 783.99].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.09);
+            gain.gain.setValueAtTime(0.25, now + idx * 0.09);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.09 + 0.35);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + idx * 0.09);
+            osc.stop(now + idx * 0.09 + 0.35);
+          });
+        } else if (type === 'buzz') {
+          // Low warning buzz for discrepancy
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(150, now);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        }
+      } catch (e) {
+        console.warn('Audio synthesis note:', e);
+      }
+    }
+
+    function testAudioBeep() {
+      playSound('beep');
+    }
+
+    /* =========================================================================
+       3. LIVE REAL-TIME CLOCK
+       ========================================================================= */
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      const clockEl = document.getElementById('liveHeaderClock');
+      if (clockEl) {
+        clockEl.innerHTML = `${timeStr}<br><span style="font-size:10px; opacity:0.8;">${dateStr}</span>`;
+      }
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    /* =========================================================================
+       4. TAB NAVIGATION
+       ========================================================================= */
+    const ADMIN_TAB_ROUTES = {
+      'tab-verify': '#verify',
+      'tab-counters': '#counters',
+      'tab-transactions': '#transactions',
+      'tab-catalog': '#catalog',
+      'tab-settings': '#settings'
+    };
+    const ADMIN_ROUTE_TO_TAB = {
+      '': 'tab-verify',
+      '#': 'tab-verify',
+      '#verify': 'tab-verify',
+      '#counters': 'tab-counters',
+      '#transactions': 'tab-transactions',
+      '#catalog': 'tab-catalog',
+      '#settings': 'tab-settings'
+    };
+
+    function switchAdminTab(tabId, pushHistory = true) {
+      if (tabId !== 'tab-verify' && state.cameraActive) {
+        toggleCameraScanner();
+      }
+
+      document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabId);
+      });
+      document.querySelectorAll('.tab-content').forEach(panel => {
+        panel.classList.toggle('active', panel.id === tabId);
+      });
+
+      const hash = ADMIN_TAB_ROUTES[tabId] || '#verify';
+      if (pushHistory && window.location.hash !== hash) {
+        history.pushState({ tabId }, '', hash);
+      }
+
+      if (tabId === 'tab-counters') loadCountersData();
+      if (tabId === 'tab-transactions') loadTransactionsData();
+      if (tabId === 'tab-catalog') loadCatalogData();
+    }
+
+    function handleAdminPopState(event) {
+      if (!authToken) {
+        // If logged out and pressing back, return cleanly to landing page
+        window.location.replace('/');
+        return;
+      }
+      const hash = window.location.hash || '#verify';
+      const tabId = ADMIN_ROUTE_TO_TAB[hash] || 'tab-verify';
+      switchAdminTab(tabId, false);
+    }
+
+    /* =========================================================================
+       5. WEBSOCKET REAL-TIME CHANNEL
+       ========================================================================= */
+    function connectCounterWebSocket() {
+      // Cleanly close previous WebSocket to avoid stale events
+      if (state.ws) {
+        try {
+          state.ws.onclose = null; // Prevent reconnect loop on intentional close
+          state.ws.close();
+        } catch (_) {}
+        state.ws = null;
+      }
+
+      const wsUrlObj = new URL(API_BASE, window.location.href);
+      const proto = wsUrlObj.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${proto}//${wsUrlObj.host}/api/v1/ws/counter/${state.counterNumber}`;
+
+      try {
+        const ws = new WebSocket(wsUrl);
+        state.ws = ws;
+
+        ws.onopen = () => {
+          if (state.ws !== ws) return;
+          const statusEl = document.getElementById('sidebarWsStatus');
+          if (statusEl) {
+            statusEl.textContent = 'Online';
+            statusEl.style.color = '#4ADE80';
+          }
+        };
+
+        ws.onmessage = (event) => {
+          if (state.ws !== ws) return;
+          try {
+            const msg = JSON.parse(event.data);
+            if (msg.event === 'NEW_TRANSACTION' || msg.event === 'NEW_ORDER_ASSIGNED') {
+              // Only reload active orders if event is explicitly for this counter
+              if (msg.counter_number === state.counterNumber) {
+                playSound('beep');
+                loadActiveOrders(counterSwitchSeq);
+                loadTransactionsData();
+                loadAdminAnalytics();
+                if (msg.data && msg.data.order_number) {
+                  if (!state.activeOrder || state.activeOrder.is_all_matched) {
+                    selectOrderForVerification(msg.data.order_number, counterSwitchSeq);
+                  }
+                }
+              } else if (!msg.counter_number && !state.userCounter) {
+                // Global store admin feed
+                loadTransactionsData();
+                loadAdminAnalytics();
+              }
+            } else if (msg.event === 'STOCK_UPDATED') {
+              loadCatalogData();
+            } else if (msg.event === 'TRANSACTION_UPDATED') {
+              loadTransactionsData();
+              loadAdminAnalytics();
+              loadCatalogData();
+              if (!msg.counter_number || msg.counter_number === state.counterNumber) {
+                loadActiveOrders(counterSwitchSeq);
+              }
+            } else if (msg.event === 'ORDER_CLEARED_RELEASED') {
+              if (!msg.counter_number || msg.counter_number === state.counterNumber) {
+                loadActiveOrders(counterSwitchSeq);
+              }
+              loadTransactionsData();
+              loadAdminAnalytics();
+            }
+          } catch (_) {}
+        };
+
+        ws.onclose = () => {
+          if (state.ws !== ws) return;
+          const statusEl = document.getElementById('sidebarWsStatus');
+          if (statusEl) {
+            statusEl.textContent = 'Connecting...';
+            statusEl.style.color = '#FBBF24';
+          }
+          setTimeout(() => {
+            if (state.ws === ws) connectCounterWebSocket();
+          }, 3000);
+        };
+      } catch (err) {
+        console.warn('WebSocket init err:', err);
+      }
+    }
+
+    /* =========================================================================
+       6. ACTIVE ORDERS & QUEUE DOCK (COUNTER ISOLATED)
+       ========================================================================= */
+    function resetVerificationUIForCounter(counterNum) {
+      // 0. Reset active order state to prevent stale data leaking from prior counter
+      state.activeOrder = null;
+      state.discrepancyActive = false;
+      state.verificationStartTime = null;
+
+      // 1. Switch back to active verification view (hide cleared view)
+      const activeView = document.getElementById('activeVerificationView');
+      const clearedView = document.getElementById('customerClearedView');
+      if (activeView) activeView.style.display = 'grid';
+      if (clearedView) clearedView.style.display = 'none';
+
+      // 2. Reset header tags
+      const statusPill = document.getElementById('headerStatusPill');
+      if (statusPill) {
+        statusPill.textContent = '● COUNTER READY';
+        statusPill.className = 'pill-chip status-active';
+      }
+      const orderPill = document.getElementById('headerOrderPill');
+      if (orderPill) orderPill.textContent = 'Order #--';
+      const payPill = document.getElementById('headerPaymentPill');
+      if (payPill) payPill.textContent = 'Payment ₹0';
+
+      // 3. Clear cart items table with informative empty state
+      const tbody = document.getElementById('cartItemsTableBody');
+      if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:36px; color:var(--text-muted); font-size:13px;">No order currently loaded at Counter ${counterNum}.<br><span style="font-size:11px; opacity:0.8;">Scan customer Fast-Pass or select an order from Live Queue below.</span></td></tr>`;
+      }
+
+      // 4. Reset cart metric mini boxes
+      const expEl = document.getElementById('metricItemsExpected');
+      if (expEl) expEl.textContent = '0';
+      const verEl = document.getElementById('metricItemsVerified');
+      if (verEl) verEl.textContent = '0';
+      const remEl = document.getElementById('metricItemsRemaining');
+      if (remEl) remEl.textContent = '0';
+
+      // 5. Reset progress bar
+      const pCount = document.getElementById('progressBarCountText');
+      if (pCount) pCount.textContent = '0 / 0 ITEMS VERIFIED';
+      const pPct = document.getElementById('progressBarPercentText');
+      if (pPct) pPct.textContent = '0%';
+      const pFill = document.getElementById('progressBarFill');
+      if (pFill) pFill.style.width = '0%';
+      const pRem = document.getElementById('progressBarRemainingLabel');
+      if (pRem) pRem.textContent = 'Waiting for scan...';
+
+      // 6. Clear quick scan shortcut chips
+      const quickContainer = document.getElementById('quickScanItemsContainer');
+      if (quickContainer) quickContainer.innerHTML = '';
+
+      // 7. Clear status column metrics
+      const sRatio = document.getElementById('statItemsRatio');
+      if (sRatio) sRatio.textContent = '0 / 0';
+      const sMatched = document.getElementById('statMatchedCount');
+      if (sMatched) sMatched.textContent = '0';
+      const sRem = document.getElementById('statRemainingCount');
+      if (sRem) sRem.textContent = '0';
+      const sFlagged = document.getElementById('statFlaggedCount');
+      if (sFlagged) sFlagged.textContent = '0';
+      const sVerif = document.getElementById('statVerifStatusText');
+      if (sVerif) sVerif.textContent = 'Idle';
+
+      // 8. Hide match announcement & discrepancy cards
+      const matchBanner = document.getElementById('matchAnnouncementCard');
+      if (matchBanner) matchBanner.style.display = 'none';
+      const discCard = document.getElementById('discrepancyCard');
+      if (discCard) discCard.classList.remove('visible');
+
+      // 9. Queue list loading placeholder
+      const queueList = document.getElementById('incomingOrdersChipList');
+      if (queueList) {
+        queueList.innerHTML = `<span style="font-size:12px; color:var(--text-muted);">Fetching orders for Counter ${counterNum}...</span>`;
+      }
+    }
+
+    async function loadActiveOrders(seq) {
+      const targetCounter = state.counterNumber;
+      try {
+        const orders = await apiRequest(`/api/v1/admin/orders/active?counter_number=${encodeURIComponent(targetCounter)}&limit=10`);
+        // Discard if user already switched to another counter (race condition protection)
+        if (seq !== undefined && seq !== counterSwitchSeq) return;
+        if (state.counterNumber !== targetCounter) return;
+
+        renderIncomingOrdersChips(orders);
+
+        if (orders && orders.length > 0) {
+          // If no active order, or current active order belongs to a different counter, select first
+          if (!state.activeOrder || state.activeOrder.assigned_counter_number !== targetCounter) {
+            selectOrderForVerification(orders[0].order_number, seq);
+          }
+        } else {
+          // New counter has NO active orders: clear activeOrder completely so old counter's order never lingers!
+          state.activeOrder = null;
+          state.discrepancyActive = false;
+          resetVerificationUIForCounter(targetCounter);
+          const queueList = document.getElementById('incomingOrdersChipList');
+          if (queueList) {
+            queueList.innerHTML = `<span style="font-size:12px; color:var(--text-muted);">No orders currently waiting at Counter ${targetCounter}</span>`;
+          }
+        }
+      } catch (err) {
+        if (seq !== undefined && seq !== counterSwitchSeq) return;
+        console.warn('Failed to load active orders:', err);
+      }
+    }
+
+    function renderIncomingOrdersChips(orders) {
+      const container = document.getElementById('incomingOrdersChipList');
+      if (!container) return;
+
+      if (!orders || orders.length === 0) {
+        container.innerHTML = `<span style="font-size:12px; color:var(--text-muted);">No orders currently waiting at Counter ${state.counterNumber}</span>`;
+        return;
+      }
+
+      container.innerHTML = orders.map(o => `
+        <button class="order-queue-chip ${state.activeOrder && state.activeOrder.order_number === o.order_number ? 'active' : ''}" onclick="selectOrderForVerification('${o.order_number}', counterSwitchSeq)">
+          <span>⚡ #${o.order_number}</span>
+          <span style="font-size:11px; opacity:0.75;">(${o.items_expected_count} items • ₹${o.total_amount})</span>
+        </button>
+      `).join('');
+    }
+
+    async function selectOrderForVerification(orderNumber, seq) {
+      const currentCounter = state.counterNumber;
+      try {
+        const detail = await apiRequest('/api/v1/admin/verify/lookup', {
+          method: 'POST',
+          body: JSON.stringify({ token_or_order_number: orderNumber, counter_number: currentCounter })
+        });
+        // Discard if counter switched while in flight
+        if (seq !== undefined && seq !== counterSwitchSeq) return;
+        if (state.counterNumber !== currentCounter) return;
+
+        state.activeOrder = detail;
+        state.discrepancyActive = false;
+        state.verificationStartTime = Date.now();
+        renderActiveVerification(detail);
+
+        // Update queue chip highlight
+        document.querySelectorAll('.order-queue-chip').forEach(btn => {
+          btn.classList.toggle('active', btn.textContent.includes(detail.order_number));
+        });
+      } catch (err) {
+        if (seq !== undefined && seq !== counterSwitchSeq) return;
+        showToast('Could not load order: ' + err.message, true);
+      }
+    }
+
+
+    /* =========================================================================
+       7. RENDER VERIFICATION INTERFACE (MATCHING REFERENCE 1 & 2)
+       ========================================================================= */
+    function renderActiveVerification(order) {
+      if (!order) return;
+
+      // Update Top Header Pills
+      document.getElementById('headerOrderPill').textContent = `Order #${order.order_number}`;
+      document.getElementById('headerPaymentPill').textContent = `Payment ₹${Math.round(order.total_amount)} PAID ✓`;
+
+      if (order.is_all_matched) {
+        // RENDER REFERENCE 1: CUSTOMER CLEARED CELEBRATION VIEW
+        document.getElementById('activeVerificationView').style.display = 'none';
+        document.getElementById('customerClearedView').style.display = 'block';
+        document.getElementById('headerStatusPill').textContent = '● CUSTOMER CLEARED';
+        document.getElementById('headerStatusPill').className = 'pill-chip status-active';
+
+        renderCustomerClearedScreen(order);
+        return;
+      }
+
+      // RENDER REFERENCE 2: ACTIVE VERIFICATION IN PROGRESS
+      document.getElementById('activeVerificationView').style.display = 'grid';
+      document.getElementById('customerClearedView').style.display = 'none';
+      document.getElementById('headerStatusPill').textContent = '● VERIFICATION IN PROGRESS';
+      document.getElementById('headerStatusPill').className = 'pill-chip status-progress';
+
+      // 1. Column 1: Cart Items Table
+      const tbody = document.getElementById('cartItemsTableBody');
+      tbody.innerHTML = order.items.map(item => `
+        <tr class="cart-item-row ${item.is_matched ? 'matched' : ''}">
+          <td style="display:flex; align-items:center; gap:8px;">
+            <div class="item-thumbnail-box">${item.icon || '📦'}</div>
+            <div>
+              <div style="font-weight:700; font-size:12.5px;">${item.product_name}</div>
+              <div style="font-size:10.5px; color:var(--text-muted); font-family:var(--font-mono);">${item.product_barcode}</div>
+            </div>
+          </td>
+          <td style="text-align:center; font-weight:700;">${item.expected_quantity}</td>
+          <td style="text-align:center; font-weight:800; color:${item.is_matched ? 'var(--green)' : 'var(--text-main)'};">${item.verified_quantity}</td>
+          <td style="text-align:right;">
+            ${item.is_matched 
+              ? `<span class="badge-matched">✓ MATCHED</span>` 
+              : `<span class="badge-pending">○ PENDING</span>`}
+          </td>
+        </tr>
+      `).join('');
+
+      // Cart Metrics
+      document.getElementById('metricItemsExpected').textContent = order.items_expected_count;
+      document.getElementById('metricItemsVerified').textContent = order.items_verified_count;
+      document.getElementById('metricItemsRemaining').textContent = order.items_remaining_count;
+
+      // 2. Column 2: Scanner & Progress
+      const pct = order.items_expected_count > 0 
+        ? Math.round((order.items_verified_count / order.items_expected_count) * 100) 
+        : 0;
+
+      document.getElementById('progressBarCountText').textContent = `${order.items_verified_count} / ${order.items_expected_count} ITEMS VERIFIED`;
+      document.getElementById('progressBarPercentText').textContent = `${pct}%`;
+      document.getElementById('progressBarFill').style.width = `${pct}%`;
+      document.getElementById('progressBarRemainingLabel').textContent = order.items_remaining_count > 0 
+        ? `${order.items_remaining_count} item${order.items_remaining_count > 1 ? 's' : ''} remaining` 
+        : 'All items matched';
+
+      // Quick Scan Buttons for Basket Items
+      const quickContainer = document.getElementById('quickScanItemsContainer');
+      quickContainer.innerHTML = order.items.map(item => `
+        <button class="btn-action-secondary" style="padding:4px 8px; font-size:11px;" onclick="scanBarcode('${item.product_barcode}')">
+          + Scan ${item.product_name} (${item.verified_quantity}/${item.expected_quantity})
+        </button>
+      `).join('');
+
+      // 3. Column 3: Verification Status
+      document.getElementById('statItemsRatio').textContent = `${order.items_verified_count} / ${order.items_expected_count}`;
+      document.getElementById('statMatchedCount').textContent = order.items_verified_count;
+      document.getElementById('statRemainingCount').textContent = order.items_remaining_count;
+      document.getElementById('statFlaggedCount').textContent = state.discrepancyActive ? '1' : '0';
+
+      // Discrepancy Card Toggle
+      document.getElementById('discrepancyCard').classList.toggle('visible', state.discrepancyActive);
+    }
+
+    /* =========================================================================
+       8. BARCODE SCANNING & VERIFICATION ENGINE
+       ========================================================================= */
+    async function scanBarcode(barcode) {
+      if (!barcode) return;
+      const cleanBarcode = barcode.trim();
+
+      // Check if scanned barcode is a customer Fast-Pass order barcode
+      const isOrderPass = cleanBarcode.toUpperCase().startsWith('FS-') || cleanBarcode.toUpperCase().startsWith('SF-');
+      if (isOrderPass || !state.activeOrder) {
+        try {
+          await selectOrderForVerification(cleanBarcode, counterSwitchSeq);
+          playSound('beep');
+          return;
+        } catch (err) {
+          if (isOrderPass) {
+            alert('Could not find order #' + cleanBarcode + ': ' + err.message);
+            return;
+          }
+        }
+      }
+
+      if (!state.activeOrder) {
+        showToast('Scan customer Fast-Pass (FS-XXXXXX) or click an order to start verification', true);
+        const statusEl = document.getElementById('adminScannerStatusLabel');
+        if (statusEl) statusEl.textContent = 'Awaiting Fast-Pass or Order Selection';
+        return;
+      }
+
+      const heroTarget = document.getElementById('scannerHeroTarget');
+      if (heroTarget) {
+        heroTarget.classList.add('active-pulse');
+        setTimeout(() => heroTarget.classList.remove('active-pulse'), 300);
+      }
+
+      try {
+        const res = await apiRequest('/api/v1/admin/verify/scan', {
+          method: 'POST',
+          body: JSON.stringify({
+            order_number: state.activeOrder.order_number,
+            scanned_barcode: barcode.trim(),
+            counter_number: state.counterNumber
+          })
+        });
+
+        // Update state
+        state.activeOrder = res.order;
+
+        if (res.status === 'UNEXPECTED_ITEM') {
+          playSound('buzz');
+          state.discrepancyActive = true;
+          document.getElementById('discrepancyItemName').textContent = res.product_name || `Barcode: ${barcode}`;
+          document.getElementById('audioFeedbackText').textContent = `Discrepancy: ${res.message}`;
+          renderActiveVerification(res.order);
+          return;
+        }
+
+        // Valid Match
+        playSound('beep');
+        state.discrepancyActive = false;
+
+        // Show match announcement banner
+        const matchBanner = document.getElementById('matchAnnouncementCard');
+        matchBanner.style.display = 'flex';
+        document.getElementById('matchAnnouncementTitle').textContent = `✓ ITEM MATCHED`;
+        document.getElementById('matchAnnouncementSub').textContent = `${res.product_name} • MATCH CONFIRMED`;
+        document.getElementById('audioFeedbackText').textContent = `Beep! ${res.product_name} matched successfully.`;
+
+        // Check if cleared
+        if (res.is_all_matched) {
+          playSound('cleared');
+          if (window.confetti) {
+            window.confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+          }
+          if (state.verificationStartTime) {
+            state.verificationElapsedSeconds = Math.max(8, Math.round((Date.now() - state.verificationStartTime) / 1000));
+          }
+        }
+
+        renderActiveVerification(res.order);
+
+      } catch (err) {
+        playSound('buzz');
+        alert('Scan Error: ' + err.message);
+      }
+    }
+
+    function handleBarcodeKey(event) {
+      if (event.key === 'Enter') {
+        submitManualBarcode();
+      }
+    }
+
+    function submitManualBarcode() {
+      const input = document.getElementById('manualBarcodeInput');
+      const val = input.value.trim();
+      if (!val) return;
+      input.value = '';
+      scanBarcode(val);
+    }
+
+    function simulateUnexpectedScan() {
+      // Simulate scanning Lay's chips or unpurchased item
+      scanBarcode('890149110183');
+    }
+
+    async function resolveDiscrepancy(action) {
+      if (!state.activeOrder) return;
+      try {
+        const res = await apiRequest('/api/v1/admin/verify/discrepancy-action', {
+          method: 'POST',
+          body: JSON.stringify({
+            order_number: state.activeOrder.order_number,
+            scanned_barcode: 'DISCREPANCY_ITEM',
+            action: action,
+            counter_number: state.counterNumber
+          })
+        });
+        state.discrepancyActive = false;
+        state.activeOrder = res;
+        renderActiveVerification(res);
+      } catch (err) {
+        alert('Action error: ' + err.message);
+      }
+    }
+
+    /* =========================================================================
+       9. CUSTOMER CLEARED CELEBRATION (MATCHING REFERENCE 1)
+       ========================================================================= */
+    function renderCustomerClearedScreen(order) {
+      document.getElementById('clearedItemsRatioTitle').textContent = `${order.items_expected_count} / ${order.items_expected_count} ITEMS MATCHED`;
+      document.getElementById('clearedItemsPillRatio').textContent = `✓ ${order.items_expected_count} / ${order.items_expected_count} MATCHED`;
+
+      const rowsList = document.getElementById('clearedSummaryRowsList');
+      rowsList.innerHTML = order.items.map(i => `
+        <div class="cleared-summary-row">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="color:var(--green); font-weight:800;">✓</span>
+            <span style="font-weight:700;">${i.product_name}</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:16px;">
+            <span style="font-weight:700; font-family:var(--font-mono);">${i.expected_quantity}</span>
+            <span class="badge-matched">MATCHED</span>
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('clearedTotalItemsCount').textContent = `🧺 Total Items: ${order.items_expected_count}`;
+      document.getElementById('clearedTotalAmountPaid').textContent = `Amount Paid: ₹${Math.round(order.total_amount)}`;
+
+      const dur = state.verificationElapsedSeconds || 17;
+      document.getElementById('clearedDurationVal').textContent = `${dur} sec`;
+      document.getElementById('clearedPerformanceItems').textContent = `${order.items_expected_count} items verified`;
+    }
+
+    async function finishAndResetVerification() {
+      if (!state.activeOrder) return;
+      try {
+        const clearedNum = state.activeOrder.order_number;
+        await apiRequest('/api/v1/admin/verify/complete', {
+          method: 'POST',
+          body: JSON.stringify({
+            order_number: clearedNum,
+            counter_number: state.counterNumber,
+            duration_seconds: state.verificationElapsedSeconds || 17
+          })
+        });
+
+        showToast(`✓ Order #${clearedNum} verified and cleared!`);
+
+        // Reset terminal cleanly
+        state.activeOrder = null;
+        state.discrepancyActive = false;
+        resetVerificationUIForCounter(state.counterNumber);
+
+        loadActiveOrders(counterSwitchSeq);
+        loadTransactionsData();
+        loadAdminAnalytics();
+        loadCountersData();
+      } catch (err) {
+        showToast('Completion failed: ' + err.message, true);
+      }
+    }
+
+
+    /* =========================================================================
+       10. CAMERA SCANNER TOGGLE & CONTROLS
+       ========================================================================= */
+    let adminAvailableCameras = [];
+    let adminCurrentCameraIndex = 0;
+    let adminCameraSessionId = 0;
+    let lastAdminScanned = null;
+    let lastAdminScanTime = 0;
+    let adminSuppressPausedTimer = null;
+
+    async function toggleCameraScanner() {
+      const box = document.getElementById('cameraScannerBox');
+      if (state.cameraActive) {
+        await stopAdminCamera();
+        box.style.display = 'none';
+        state.cameraActive = false;
+      } else {
+        box.style.display = 'block';
+        state.cameraActive = true;
+        
+        // Ensure browser paints the block so it has layout dimensions before library starts
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            startAdminCamera();
+          }, 50);
+        });
+      }
+    }
+
+    async function stopAdminCamera() {
+      adminCameraSessionId++;
+      if (adminSuppressPausedTimer) {
+        clearInterval(adminSuppressPausedTimer);
+        adminSuppressPausedTimer = null;
+      }
+      if (state.html5QrCode) {
+        const oldScanner = state.html5QrCode;
+        state.html5QrCode = null;
+        try {
+          await oldScanner.stop();
+        } catch (_) {}
+      }
+      document.querySelectorAll('#adminReader video').forEach(v => {
+        try {
+          if (v.srcObject) {
+            v.srcObject.getTracks().forEach(t => t.stop());
+            v.srcObject = null;
+          }
+        } catch (_) {}
+      });
+      const readerEl = document.getElementById('adminReader');
+      if (readerEl) readerEl.innerHTML = '';
+    }
+
+    async function startAdminCamera(preferredCameraId = null) {
+      const errBox = document.getElementById('adminCameraErrorBox');
+      const statusLabel = document.getElementById('adminScannerStatusLabel');
+      const selectEl = document.getElementById('adminCameraSelect');
+
+      if (errBox) errBox.style.display = 'none';
+      if (statusLabel) statusLabel.textContent = 'Connecting camera...';
+
+      if (!window.Html5Qrcode) {
+        if (errBox) {
+          errBox.style.display = 'block';
+          document.getElementById('adminCameraErrorText').textContent = 'Html5Qrcode scanner library is loading...';
+        }
+        setTimeout(() => startAdminCamera(preferredCameraId), 600);
+        return;
+      }
+
+      // Check Secure Context (allow localhost & 127.0.0.1 for development)
+      if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        if (errBox) {
+          errBox.style.display = 'block';
+          document.getElementById('adminCameraErrorText').innerHTML = `⚠️ HTTPS is required for camera access. <a href="https://${location.host}${location.pathname}${location.search}${location.hash}" style="color:var(--primary);font-weight:700;text-decoration:underline;">Switch to HTTPS</a>`;
+        }
+        return;
+      }
+
+      // Check if MediaDevices API is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (errBox) {
+          errBox.style.display = 'block';
+          document.getElementById('adminCameraErrorText').textContent = 'Camera API is not supported in this browser. Please use Chrome/Safari/Edge over HTTPS.';
+        }
+        return;
+      }
+
+      // Stop previous instance cleanly
+      if (state.html5QrCode) {
+        const oldInst = state.html5QrCode;
+        state.html5QrCode = null;
+        try { await oldInst.stop(); } catch (_) {}
+        await new Promise(r => setTimeout(r, 150));
+      }
+      document.querySelectorAll('#adminReader video').forEach(v => {
+        try {
+          if (v.srcObject) {
+            v.srcObject.getTracks().forEach(t => t.stop());
+            v.srcObject = null;
+          }
+        } catch (_) {}
+      });
+
+      const session = ++adminCameraSessionId;
+      const readerEl = document.getElementById('adminReader');
+      if (!readerEl) return;
+      readerEl.innerHTML = '';
+
+      try {
+        const supportedFormats = (window.Html5QrcodeSupportedFormats) ? [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.QR_CODE
+        ] : undefined;
+
+        // Full-frame scanning at 10 FPS avoids the restrictive qrbox root dimension crash
+        const qrConfig = {
+          fps: 10,
+          disableFlip: false
+        };
+
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const candidateConstraints = [];
+
+        if (preferredCameraId) {
+          candidateConstraints.push(preferredCameraId);
+        }
+
+        if (isMobile) {
+          candidateConstraints.push({ facingMode: "environment" });
+          candidateConstraints.push({ facingMode: "user" });
+        } else {
+          candidateConstraints.push({ facingMode: "user" });
+          candidateConstraints.push({ facingMode: "environment" });
+        }
+
+        if (adminAvailableCameras && adminAvailableCameras.length > 0) {
+          adminAvailableCameras.forEach(c => {
+            if (c.id && !candidateConstraints.includes(c.id)) {
+              candidateConstraints.push(c.id);
+            }
+          });
+        }
+
+        let started = false;
+        let lastErr = null;
+
+        for (let i = 0; i < candidateConstraints.length; i++) {
+          if (session !== adminCameraSessionId) break;
+
+          const constraint = candidateConstraints[i];
+          const freshReader = document.getElementById('adminReader');
+          if (!freshReader) break;
+          freshReader.innerHTML = '';
+
+          let scanner = null;
+          try {
+            scanner = new Html5Qrcode("adminReader", {
+              formatsToSupport: supportedFormats,
+              verbose: false,
+              experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+            });
+
+            scanner.showPausedState = () => {};
+            scanner.hidePausedState = () => {};
+
+            await scanner.start(
+              constraint,
+              qrConfig,
+              (decodedText) => handleAdminBarcodeScanned(decodedText),
+              () => {}
+            );
+
+            if (session !== adminCameraSessionId) {
+              try { await scanner.stop(); } catch (_) {}
+              break;
+            }
+
+            state.html5QrCode = scanner;
+            started = true;
+
+            // Continually suppress "Scanner paused" text overlays
+            if (adminSuppressPausedTimer) clearInterval(adminSuppressPausedTimer);
+            adminSuppressPausedTimer = setInterval(() => {
+              document.querySelectorAll('#adminReader *').forEach(el => {
+                if (el.tagName !== 'VIDEO' && el.tagName !== 'CANVAS' && (el.textContent || '').trim().toLowerCase().includes('paused')) {
+                  el.style.setProperty('display', 'none', 'important');
+                  try { el.remove(); } catch (_) {}
+                }
+              });
+            }, 120);
+
+            if (statusLabel) {
+              let labelText = '✓ Camera Ready';
+              if (typeof constraint === 'string') {
+                const found = adminAvailableCameras.find(c => c.id === constraint);
+                if (found && found.label) labelText = `✓ ${found.label.substring(0, 32)}`;
+              } else if (constraint && constraint.facingMode === 'environment') {
+                labelText = '✓ Back Camera Ready';
+              } else if (constraint && constraint.facingMode === 'user') {
+                labelText = isMobile ? '✓ Front Camera Ready' : '✓ Webcam Ready';
+              }
+              statusLabel.textContent = labelText;
+            }
+
+            // Optimize video track (playsinline, autofocus)
+            setTimeout(() => {
+              const video = document.querySelector('#adminReader video');
+              if (video) {
+                video.setAttribute('playsinline', 'true');
+                video.setAttribute('webkit-playsinline', 'true');
+                video.setAttribute('autoplay', 'true');
+                video.muted = true;
+                video.play().catch(() => {});
+
+                const stream = video.srcObject;
+                if (stream) {
+                  const track = stream.getVideoTracks()[0];
+                  if (track && typeof track.applyConstraints === 'function') {
+                    const caps = (typeof track.getCapabilities === 'function') ? track.getCapabilities() : {};
+                    const adv = [];
+                    if (caps.focusMode && caps.focusMode.includes('continuous')) adv.push({ focusMode: 'continuous' });
+                    if (caps.exposureMode && caps.exposureMode.includes('continuous')) adv.push({ exposureMode: 'continuous' });
+                    if (adv.length) track.applyConstraints({ advanced: adv }).catch(() => {});
+                  }
+                }
+              }
+            }, 250);
+
+            // Enumerate devices once permission granted
+            Html5Qrcode.getCameras().then(cams => {
+              if (cams && cams.length > 0) {
+                adminAvailableCameras = cams;
+                if (selectEl && cams.length > 1) {
+                  selectEl.innerHTML = cams.map((c, idx) =>
+                    `<option value="${c.id}" ${typeof constraint === 'string' && constraint === c.id ? 'selected' : ''}>${c.label || ('Camera ' + (idx + 1))}</option>`
+                  ).join('');
+                  selectEl.style.display = 'inline-block';
+                }
+              }
+            }).catch(() => {});
+
+            break;
+          } catch (err) {
+            console.warn(`Admin camera attempt ${i + 1}/${candidateConstraints.length} failed:`, err.name, err.message);
+            lastErr = err;
+            if (scanner) {
+              try { await scanner.stop(); } catch (_) {}
+            }
+            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+              break;
+            }
+            await new Promise(r => setTimeout(r, 200));
+          }
+        }
+
+        if (!started && session === adminCameraSessionId) {
+          if (errBox) {
+            errBox.style.display = 'block';
+            let msg = 'Could not start camera.';
+            if (lastErr) {
+              if (lastErr.name === 'NotAllowedError' || lastErr.name === 'PermissionDeniedError') {
+                msg = '🔒 Camera permission denied. Please allow camera access in browser address bar.';
+              } else if (lastErr.name === 'NotReadableError' || lastErr.name === 'TrackStartError') {
+                msg = '📷 Camera in use by another tab (e.g. Customer tab) or closed shutter. Close it and retry.';
+              } else if (lastErr.name === 'NotFoundError' || lastErr.name === 'DevicesNotFoundError') {
+                msg = '📷 No camera found on this computer/device.';
+              }
+            }
+            document.getElementById('adminCameraErrorText').textContent = msg;
+          }
+          if (statusLabel) statusLabel.textContent = 'Camera error';
+        }
+      } catch (fatalErr) {
+        console.error('Fatal admin scanner error:', fatalErr);
+        if (errBox && session === adminCameraSessionId) {
+          errBox.style.display = 'block';
+          document.getElementById('adminCameraErrorText').textContent = 'Scanner error: ' + (fatalErr.message || 'unknown');
+        }
+        if (statusLabel) statusLabel.textContent = 'Camera error';
+      }
+    }
+
+    function handleAdminBarcodeScanned(decodedText) {
+      if (!decodedText) return;
+      const code = String(decodedText).trim();
+      const now = Date.now();
+      const statusLabel = document.getElementById('adminScannerStatusLabel');
+
+      // Instantly remove any "Scanner paused" overlay
+      document.querySelectorAll('#adminReader *').forEach(el => {
+        if (el.tagName !== 'VIDEO' && el.tagName !== 'CANVAS' && (el.textContent || '').toLowerCase().includes('paused')) {
+          el.style.setProperty('display', 'none', 'important');
+          try { el.remove(); } catch (_) {}
+        }
+      });
+
+      if (code === lastAdminScanned && (now - lastAdminScanTime) < 1200) {
+        if (statusLabel) statusLabel.textContent = `Scanned: ${code} (hold item)`;
+        return;
+      }
+      lastAdminScanned = code;
+      lastAdminScanTime = now;
+
+      if (navigator.vibrate) {
+        try { navigator.vibrate([60, 40, 60]); } catch (_) {}
+      }
+
+      scanBarcode(code);
+    }
+
+    function switchAdminCamera(cameraId) {
+      if (!cameraId) return;
+      startAdminCamera(cameraId);
+    }
+
+    function switchAdminCameraNext() {
+      if (!adminAvailableCameras || adminAvailableCameras.length <= 1) {
+        showToast('Only 1 camera detected', false);
+        return;
+      }
+      adminCurrentCameraIndex = (adminCurrentCameraIndex + 1) % adminAvailableCameras.length;
+      const nextCam = adminAvailableCameras[adminCurrentCameraIndex];
+      showToast(`Switching to: ${nextCam.label || ('Camera ' + (adminCurrentCameraIndex + 1))}`);
+      startAdminCamera(nextCam.id);
+    }
+
+    /* =========================================================================
+       11. OTHER TABS (COUNTERS, TRANSACTIONS, CATALOG)
+       ========================================================================= */
+    async function loadCountersData() {
+      try {
+        const counters = await apiRequest('/api/v1/counters');
+        const grid = document.getElementById('countersCardsGrid');
+        if (!grid) return;
+        grid.innerHTML = counters.map(c => `
+          <div class="pos-card" style="border-top:3px solid ${c.counter_number === state.counterNumber ? 'var(--primary)' : 'var(--border-strong)'};">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span style="font-weight:800; font-size:15px;">Register ${c.counter_number}</span>
+              <span class="pill-chip ${c.counter_number === state.counterNumber ? 'status-active' : ''}" style="font-size:11px;">
+                ${c.counter_number === state.counterNumber ? '● ACTIVE STATION' : '● ONLINE'}
+              </span>
+            </div>
+            <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">${c.name} ${c.is_express ? '• Express' : ''}</div>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+              <div class="metric-mini-box">
+                <div class="metric-mini-value">${c.current_queue_length || 0}</div>
+                <div class="metric-mini-label">In Line</div>
+              </div>
+              <div class="metric-mini-box">
+                <div class="metric-mini-value" style="color:var(--orange);">~${Math.round((c.estimated_wait_seconds || 0) / 60)}m</div>
+                <div class="metric-mini-label">Wait Time</div>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; background:var(--surface-subtle); border-radius:var(--radius-sm); padding:6px 10px; margin-bottom:12px; font-size:12px;">
+              <span style="color:var(--text-muted); font-weight:600;">Counter Revenue:</span>
+              <b style="font-family:var(--font-mono); color:var(--text-main);">₹${(c.counter_revenue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+            </div>
+
+            <button class="${c.counter_number === state.counterNumber ? 'btn-action-primary' : 'btn-action-secondary'}" style="width:100%; font-size:12px;" onclick="onCounterChange('${c.counter_number}')">
+              ${c.counter_number === state.counterNumber ? '✓ Current Terminal' : `Switch to Counter ${c.counter_number}`}
+            </button>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.warn(err);
+      }
+    }
+
+    let txSearchTimer = null;
+    function onTxSearchChange(val) {
+      clearTimeout(txSearchTimer);
+      txSearchTimer = setTimeout(() => loadTransactionsData(), 300);
+    }
+
+    async function loadAdminAnalytics() {
+      try {
+        const a = await apiRequest('/api/v1/admin/analytics');
+        if (!a) return;
+        const totalSalesEl = document.getElementById('kpiTotalSales');
+        const todayOrdersEl = document.getElementById('kpiTodayOrders');
+        const verifiedOrdersEl = document.getElementById('kpiVerifiedOrders');
+        const activeQueueEl = document.getElementById('kpiActiveQueue');
+        const paymentPill = document.getElementById('headerPaymentPill');
+
+        const overallRevenue = a.total_revenue !== undefined ? a.total_revenue : (a.today_sales_total || 0);
+
+        if (totalSalesEl) totalSalesEl.textContent = `₹${overallRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        if (todayOrdersEl) todayOrdersEl.textContent = a.today_orders_count || 0;
+        if (verifiedOrdersEl) verifiedOrdersEl.textContent = a.today_verified_count || 0;
+        if (activeQueueEl) activeQueueEl.textContent = a.active_queue_length || 0;
+        if (paymentPill) {
+          if (state.activeOrder && state.activeOrder.total_amount) {
+            paymentPill.textContent = `Payment ₹${Math.round(state.activeOrder.total_amount)} PAID ✓`;
+          } else {
+            paymentPill.textContent = `Revenue ₹${Math.round(overallRevenue)} OVERALL`;
+          }
+        }
+      } catch (err) {
+        console.warn('Analytics fetch err:', err);
+      }
+    }
+
+    async function loadTransactionsData() {
+      try {
+        const counter = document.getElementById('txFilterCounter')?.value || '';
+        const status = document.getElementById('txFilterStatus')?.value || '';
+        const search = document.getElementById('txSearchInput')?.value.trim() || '';
+        let query = `/api/v1/admin/transactions?limit=50`;
+        if (counter) query += `&counter=${encodeURIComponent(counter)}`;
+        if (status) query += `&status=${encodeURIComponent(status)}`;
+        if (search) query += `&search=${encodeURIComponent(search)}`;
+
+        const txs = await apiRequest(query);
+        const tbody = document.getElementById('transactionsTableBody');
+        if (!tbody) return;
+        if (!txs || txs.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:24px; color:var(--text-muted);">No transactions found matching criteria.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = txs.map(t => {
+          const isRefunded = t.payment_status === 'REFUNDED';
+          const statusBadge = isRefunded
+            ? `<span style="color:#DC2626; font-weight:800; font-size:11px; background:#FEE2E2; padding:2px 8px; border-radius:6px;">REFUNDED</span>`
+            : t.verification_status === 'CLEARED'
+              ? `<span class="badge-matched">✓ CLEARED</span>`
+              : t.verification_status === 'FLAGGED'
+                ? `<span style="color:var(--red); font-weight:800; font-size:11px;">⚠️ FLAGGED</span>`
+                : `<span class="badge-pending">PENDING</span>`;
+
+          return `
+            <tr style="${isRefunded ? 'opacity:0.75; background:#FEF2F2;' : ''}">
+              <td style="font-family:var(--font-mono); font-weight:800; color:var(--primary);">#${t.order_number}</td>
+              <td><b>${t.customer_identifier}</b></td>
+              <td>Register ${t.assigned_counter_number}</td>
+              <td>${t.items_count} items</td>
+              <td style="font-weight:800; font-family:var(--font-mono); ${isRefunded ? 'text-decoration:line-through; color:#94A3B8;' : ''}">₹${Math.round(t.total_amount)}</td>
+              <td><span class="pill-chip payment-tag" style="padding:2px 8px; font-size:10.5px;">${t.payment_method} • ${t.payment_status}</span></td>
+              <td>${statusBadge}</td>
+              <td style="font-family:var(--font-mono);">${t.verification_duration_seconds ? `${t.verification_duration_seconds}s` : '--'}</td>
+              <td style="font-size:11.5px; color:var(--text-muted);">${new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+              <td style="text-align:right; white-space:nowrap;">
+                <button class="btn-action-secondary" style="padding:4px 8px; font-size:11px;" onclick="viewOrderReceiptModal('${t.order_number}')">
+                  Inspect ↗
+                </button>
+                ${!isRefunded ? `
+                  <button class="btn-action-secondary" style="padding:4px 8px; font-size:11px; color:#DC2626; margin-left:4px;" onclick="refundOrderPrompt('${t.order_number}')" title="Refund and restore inventory">
+                    Refund ↩
+                  </button>
+                ` : ''}
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        console.warn(err);
+      }
+    }
+
+    async function refundOrderPrompt(orderNumber) {
+      if (!confirm(`Are you sure you want to refund Order #${orderNumber}? This will restore the purchased stock back into inventory immediately.`)) {
+        return;
+      }
+      try {
+        await apiRequest(`/api/v1/admin/transactions/${encodeURIComponent(orderNumber)}/refund`, {
+          method: 'POST'
+        });
+        playSound('cleared');
+        showToast(`✓ Order #${orderNumber} refunded! Inventory stock has been restored.`);
+        loadTransactionsData();
+        loadCatalogData();
+        loadAdminAnalytics();
+        loadActiveOrders(counterSwitchSeq);
+        loadCountersData();
+      } catch (err) {
+        showToast('Refund failed: ' + err.message, true);
+      }
+    }
+
+    async function viewOrderReceiptModal(orderNumber) {
+      try {
+        const detail = await apiRequest(`/api/v1/admin/orders/${orderNumber}`);
+        document.getElementById('modalOrderTitle').textContent = `Order #${detail.order_number}`;
+        const body = document.getElementById('modalOrderBody');
+        const isRefunded = detail.payment_status === 'REFUNDED';
+
+        body.innerHTML = `
+          <div style="margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <span>Transaction ID:</span><b style="font-family:var(--font-mono); color:var(--primary);">#${detail.order_number}</b>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <span>Customer:</span><b>${detail.customer_identifier}</b>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <span>Assigned Counter:</span><b>Register ${detail.assigned_counter_number}</b>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <span>Date & Time:</span><span>${new Date(detail.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <span>Payment:</span><b>${detail.payment_method} (${detail.payment_status})</b>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span>Verification Status:</span><b style="color:${isRefunded ? '#DC2626' : 'var(--green)'};">${isRefunded ? 'CANCELLED / REFUNDED' : detail.verification_status}</b>
+            </div>
+          </div>
+          <div style="font-weight:800; font-size:13px; margin-bottom:8px;">Products Purchased:</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            ${detail.items.map(i => `
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:12.5px; padding:6px 0; border-bottom:1px solid #F1F5F9;">
+                <div>
+                  <div style="font-weight:700;">${i.expected_quantity}× ${i.product_name}</div>
+                  <div style="font-size:11px; color:#64748B; font-family:var(--font-mono);">Barcode: ${i.product_barcode} · ₹${i.unit_price} each</div>
+                </div>
+                <span style="font-family:var(--font-mono); font-weight:800; font-size:13px;">₹${i.total_price.toFixed(2)}</span>
+              </div>
+            `).join('')}
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-top:14px; padding-top:10px; border-top:2px solid var(--text-main); font-size:15px; font-weight:800;">
+            <span>TOTAL AMOUNT:</span>
+            <span style="color:var(--primary); font-family:var(--font-mono);">₹${Math.round(detail.total_amount)}</span>
+          </div>
+          ${!isRefunded ? `
+            <div style="margin-top:16px; padding-top:12px; border-top:1px solid var(--border); text-align:right;">
+              <button class="btn-action-secondary" style="color:#DC2626; border-color:#FCA5A5; font-size:12px; padding:6px 14px;" onclick="closeOrderModal(); refundOrderPrompt('${detail.order_number}');">
+                Refund Transaction & Restore Stock ↩
+              </button>
+            </div>
+          ` : '<div style="margin-top:12px; text-align:center; font-size:12px; color:#DC2626; font-weight:800;">This transaction has been refunded and stock restored.</div>'}
+        `;
+        document.getElementById('orderModalOverlay').style.display = 'flex';
+      } catch (err) {
+        showToast('Could not inspect order: ' + err.message, true);
+      }
+    }
+
+    function closeOrderModal(event) {
+      document.getElementById('orderModalOverlay').style.display = 'none';
+    }
+
+    async function loadCatalogData() {
+      try {
+        const products = await apiRequest('/api/v1/admin/products?limit=100');
+        const tbody = document.getElementById('catalogTableBody');
+
+        // Priority 6 products at top
+        const priorityBarcodes = [
+          '8901719128608', // Parle-G Royale
+          '8901063029255', // JimJam
+          '8901571005666', // Sensodyne
+          '8907611023454', // Paan Churi
+          '8909106022645', // Lux Soap
+          '8906006787377', // Vinegar
+        ];
+
+        products.sort((a, b) => {
+          const aIdx = priorityBarcodes.indexOf(a.barcode);
+          const bIdx = priorityBarcodes.indexOf(b.barcode);
+          if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+          if (aIdx !== -1) return -1;
+          if (bIdx !== -1) return 1;
+          return a.name.localeCompare(b.name);
+        });
+
+        tbody.innerHTML = products.map(p => {
+          const initStock = p.initial_stock_qty !== undefined ? p.initial_stock_qty : 100;
+          const currentStock = p.stock_qty !== undefined ? p.stock_qty : 100;
+          const change = currentStock - initStock;
+          const changeHtml = change < 0 
+            ? `<span style="color:#DC2626; font-weight:800; font-family:var(--font-mono);">${change}</span>`
+            : change > 0 
+              ? `<span style="color:#16A34A; font-weight:800; font-family:var(--font-mono);">+${change}</span>`
+              : `<span style="color:#64748B; font-weight:700; font-family:var(--font-mono);">0</span>`;
+          
+          const statusBadge = currentStock <= 0 
+            ? `<span class="badge-discrepancy" style="background:#FEE2E2; color:#DC2626; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px;">OUT OF STOCK</span>`
+            : currentStock <= 15
+              ? `<span class="badge-pending" style="background:#FEF3C7; color:#D97706; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px;">LOW STOCK</span>`
+              : `<span class="badge-matched" style="font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px;">IN STOCK</span>`;
+
+          const isPriority = priorityBarcodes.includes(p.barcode);
+
+          return `
+            <tr style="${isPriority ? 'background:rgba(255, 85, 0, 0.02);' : ''}">
+              <td style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:20px;">${p.icon || '📦'}</span>
+                <div>
+                  <b>${p.name}</b>
+                  ${isPriority ? '<span style="font-size:9px; background:var(--primary-subtle); color:var(--primary); font-weight:800; padding:1px 5px; border-radius:4px; margin-left:6px;">PRIMARY</span>' : ''}
+                </div>
+              </td>
+              <td style="font-family:var(--font-mono); font-size:12px;">${p.barcode}</td>
+              <td><span class="pill-chip" style="background:#F1F5F9; color:var(--text-main); font-size:11px;">${p.category}</span></td>
+              <td style="font-family:var(--font-mono); font-weight:800;">₹${p.price}</td>
+              <td style="font-family:var(--font-mono); font-weight:700; text-align:center; color:#64748B;">${initStock}</td>
+              <td style="font-family:var(--font-mono); font-weight:800; text-align:center; color:${currentStock <= 10 ? '#DC2626' : 'var(--text-main)'};">${currentStock}</td>
+              <td style="text-align:center;">${changeHtml}</td>
+              <td>${statusBadge}</td>
+              <td style="text-align:right;">
+                <button class="btn-action-secondary" style="padding:4px 8px; font-size:11px;" onclick="promptStockUpdate('${p.barcode}', ${currentStock})">
+                  Update Stock
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        console.warn(err);
+      }
+    }
+
+    async function promptStockUpdate(barcode, currentStock) {
+      const newStock = prompt('Enter new stock quantity for barcode ' + barcode + ':', currentStock);
+      if (newStock === null) return;
+      const num = parseInt(newStock, 10);
+      if (isNaN(num)) return;
+
+      try {
+        await apiRequest(`/api/v1/admin/products/${barcode}`, {
+          method: 'PUT',
+          body: JSON.stringify({ stock_qty: num })
+        });
+        showToast(`Stock updated for barcode ${barcode}`);
+        loadCatalogData();
+        loadAdminAnalytics();
+      } catch (err) {
+        showToast('Stock update failed: ' + err.message, true);
+      }
+    }
+
+    function onCounterChange(newCounter) {
+      if (!newCounter) return;
+      newCounter = String(newCounter).padStart(2, '0');
+      
+      // If user is counter-bound staff, prevent switching away from their assigned counter
+      if (state.userCounter && state.userCounter !== newCounter) {
+        showToast(`Access restricted to assigned Counter ${state.userCounter}`, true);
+        return;
+      }
+
+      const seq = ++counterSwitchSeq;
+      state.counterNumber = newCounter;
+
+      // Update sidebar & header titles
+      const sidebarLabel = document.getElementById('sidebarCounterLabel');
+      if (sidebarLabel) sidebarLabel.textContent = `Counter ${newCounter}`;
+
+      const headerSubtitle = document.getElementById('headerSubtitle');
+      if (headerSubtitle) headerSubtitle.textContent = `${state.storeName} • Counter ${newCounter}`;
+
+      const settingSelect = document.getElementById('settingCounterSelect');
+      if (settingSelect) settingSelect.value = newCounter;
+
+      // Persist in localStorage and update URL param without page reload
+      try {
+        localStorage.setItem('SHOPFAST_COUNTER', newCounter);
+        const url = new URL(window.location.href);
+        url.searchParams.set('counter', newCounter);
+        window.history.replaceState({}, '', url.toString());
+      } catch (e) {
+        console.warn('Storage or history error:', e);
+      }
+
+      // Immediately clear previous counter's operational orders and state
+      resetVerificationUIForCounter(newCounter);
+
+      // Reconnect WebSocket to new counter channel
+      connectCounterWebSocket();
+
+      // Show non-intrusive toast
+      showToast(`Switched terminal to Counter ${newCounter}`);
+
+      // Request newly selected counter's active orders from backend
+      loadActiveOrders(seq);
+      loadCountersData();
+      loadAdminAnalytics();
+    }
+
+    function switchStationPrompt() {
+      switchAdminTab('tab-counters');
+      showToast('Select a register to switch terminal', false);
+    }
+
+    function toggleAudioSetting(val) {
+      state.audioEnabled = val;
+    }
+
+    /* =========================================================================
+       12. INITIALIZATION
+       ========================================================================= */
+    window.addEventListener('DOMContentLoaded', () => {
+      if (!authToken) {
+        showAdminLoginModal();
+        return;
+      }
+      initAdminTerminal();
+    });
+
+    async function initAdminTerminal() {
+      // 0. Fetch authenticated user profile to establish authoritative role and counter
+      try {
+        const profile = await apiRequest('/api/v1/auth/me');
+        if (profile) {
+          state.userRole = profile.role;
+          state.userCounter = profile.counter_number || null;
+          state.username = profile.username;
+          if (profile.counter_number) {
+            state.counterNumber = profile.counter_number;
+            localStorage.setItem('SHOPFAST_COUNTER', profile.counter_number);
+          }
+        }
+      } catch (err) {
+        console.warn('Profile fetch note:', err);
+      }
+
+      // If not bound to a specific counter (e.g. store admin), allow URL or localStorage counter
+      if (!state.userCounter) {
+        try {
+          const urlParams = new URLSearchParams(window.location.search);
+          const qCounter = urlParams.get('counter');
+          if (qCounter) {
+            state.counterNumber = String(qCounter).padStart(2, '0');
+          } else {
+            const savedCounter = localStorage.getItem('SHOPFAST_COUNTER');
+            if (savedCounter) {
+              state.counterNumber = String(savedCounter).padStart(2, '0');
+            }
+          }
+        } catch (e) {
+          console.warn(e);
+        }
+      }
+
+      const sidebarLabel = document.getElementById('sidebarCounterLabel');
+      if (sidebarLabel) sidebarLabel.textContent = `Counter ${state.counterNumber}`;
+
+      const headerSubtitle = document.getElementById('headerSubtitle');
+      if (headerSubtitle) headerSubtitle.textContent = `${state.storeName} • Counter ${state.counterNumber}`;
+
+      const settingSelect = document.getElementById('settingCounterSelect');
+      if (settingSelect) settingSelect.value = state.counterNumber;
+
+      connectCounterWebSocket();
+      loadActiveOrders(++counterSwitchSeq);
+      loadCatalogData();
+      loadTransactionsData();
+      loadCountersData();
+      loadAdminAnalytics();
+
+      // Setup tab history & deep linking
+      window.addEventListener('popstate', handleAdminPopState);
+      const initialAdminTab = ADMIN_ROUTE_TO_TAB[window.location.hash] || 'tab-verify';
+      try {
+        history.replaceState({ tabId: initialAdminTab }, '', ADMIN_TAB_ROUTES[initialAdminTab] || '#verify');
+      } catch (_) {}
+      switchAdminTab(initialAdminTab, false);
+    }
+  </script>
+</body>
+</html>
+
