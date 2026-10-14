@@ -209,7 +209,7 @@ async def create_order(
         cart_res = await db.execute(select(Cart).where(Cart.id == payload.cart_id))
         c_obj = cart_res.scalars().first()
         if c_obj:
-            if not c_obj.customer_identifier or c_obj.customer_identifier == user.username or user.role == "admin":
+            if not c_obj.customer_identifier or c_obj.customer_identifier == user.username or user.role in ("admin", "store_admin"):
                 c_obj.status = "COMPLETED"
                 await db.execute(delete(CartItem).where(CartItem.cart_id == payload.cart_id))
 
@@ -354,14 +354,14 @@ async def get_order_qr_image(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found.")
 
-    if current_user.role != "admin" and order.user_id != current_user.id:
+    if current_user.role not in ("admin", "store_admin") and order.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied."
         )
 
-    if current_user.role == "admin" and not is_store_admin(current_user):
-        if order.assigned_counter_number != current_user.counter_number:
+    if current_user.role in ("admin", "store_admin") and not is_store_admin(current_user):
+        if not current_user.counter_number or order.assigned_counter_number != current_user.counter_number:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access denied. Order is assigned to Counter {order.assigned_counter_number}, not Counter {current_user.counter_number}."
@@ -389,14 +389,14 @@ async def get_order_by_number(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found.")
 
-    if current_user.role != "admin" and order.user_id != current_user.id:
+    if current_user.role not in ("admin", "store_admin") and order.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied. You do not own this order."
         )
 
-    if current_user.role == "admin" and not is_store_admin(current_user):
-        if order.assigned_counter_number != current_user.counter_number:
+    if current_user.role in ("admin", "store_admin") and not is_store_admin(current_user):
+        if not current_user.counter_number or order.assigned_counter_number != current_user.counter_number:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access denied. Order is assigned to Counter {order.assigned_counter_number}, not Counter {current_user.counter_number}."

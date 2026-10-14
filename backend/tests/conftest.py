@@ -16,7 +16,7 @@ async def setup_test_db():
 async def admin_auth_headers():
     await init_db()
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.post("/api/v1/auth/login", json={"username": "admin3", "pin": "333333"})
+        resp = await client.post("/api/v1/auth/login", json={"username": "admin", "pin": "1234"})
         assert resp.status_code == 200, f"Admin login failed: {resp.text}"
         token = resp.json()["token"]
         return {"Authorization": f"Bearer {token}"}

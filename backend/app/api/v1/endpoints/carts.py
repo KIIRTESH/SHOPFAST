@@ -27,7 +27,7 @@ async def _get_cart_with_items(db: AsyncSession, cart_id: str, user: User) -> Ca
         await db.refresh(cart)
     else:
         # Enforce cart ownership: only owner or admin can access
-        if cart.customer_identifier and cart.customer_identifier != user.username and user.role != "admin":
+        if cart.customer_identifier and cart.customer_identifier != user.username and user.role not in ("admin", "store_admin"):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied. This cart belongs to another user."

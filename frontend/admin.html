@@ -2170,7 +2170,7 @@
           method: 'POST',
           body: JSON.stringify({ username, pin })
         });
-        if (data.role !== 'admin' && data.role !== 'staff') {
+        if (data.role !== 'admin' && data.role !== 'staff' && data.role !== 'store_admin') {
           throw new Error('Access denied: Staff or Admin role required for Terminal access.');
         }
 

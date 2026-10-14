@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, status as http_status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from app.db.session import get_db
@@ -237,7 +237,7 @@ async def get_order_verification_detail(
         raise HTTPException(status_code=404, detail="Order not found.")
 
     if not is_store_admin(current_admin):
-        if detail.assigned_counter_number != current_admin.counter_number:
+        if not current_admin.counter_number or detail.assigned_counter_number != current_admin.counter_number:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access denied. Order #{order_number} is assigned to Counter {detail.assigned_counter_number}, not Counter {current_admin.counter_number}."
@@ -258,9 +258,14 @@ async def list_transactions_ledger(
 ):
     """Returns store-wide transaction audit ledger with real-time filters."""
     if not is_store_admin(current_admin):
+        if not current_admin.counter_number:
+            raise HTTPException(
+                status_code=http_status.HTTP_403_FORBIDDEN,
+                detail="Access denied: No counter assigned to this staff account."
+            )
         if counter and counter != current_admin.counter_number:
             raise HTTPException(
-                status_code=403,
+                status_code=http_status.HTTP_403_FORBIDDEN,
                 detail=f"Access denied: Counter terminal restricted to Counter {current_admin.counter_number}."
             )
         counter = current_admin.counter_number
@@ -356,9 +361,9 @@ async def refund_transaction(
     if not order:
         raise HTTPException(status_code=404, detail=f"Order #{order_number} not found.")
 
-    if not is_store_admin(current_admin) and order.assigned_counter_number != current_admin.counter_number:
+    if not is_store_admin(current_admin) and (not current_admin.counter_number or order.assigned_counter_number != current_admin.counter_number):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=f"Access denied: Counter terminal restricted to Counter {current_admin.counter_number}."
         )
 

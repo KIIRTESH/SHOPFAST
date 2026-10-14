@@ -47,15 +47,15 @@ SEED_COUNTERS = [
     {"counter_number": "07", "name": "Fast-Track Counter 07", "is_express": True, "avg_scan_speed_factor": 1.3},
 ]
 
-# Admin staff accounts — one per counter. PIN: 1234 (admin3 PIN: 333333)
+# Admin staff accounts — one per counter. Store Administrator operates store-wide.
 SEED_ADMIN_USERS = [
-    {"username": "admin3", "display_name": "Admin Station", "pin": "333333", "counter_number": "03"},
-    {"username": "admin", "display_name": "Store Administrator", "pin": "1234", "counter_number": None},
-    {"username": "staff01", "display_name": "Counter 01 Staff", "pin": "1234", "counter_number": "01"},
-    {"username": "staff02", "display_name": "Counter 02 Staff", "pin": "1234", "counter_number": "02"},
-    {"username": "staff03", "display_name": "Counter 03 Staff", "pin": "1234", "counter_number": "03"},
-    {"username": "staff04", "display_name": "Counter 04 Staff", "pin": "1234", "counter_number": "04"},
-    {"username": "staff07", "display_name": "Counter 07 Staff", "pin": "1234", "counter_number": "07"},
+    {"username": "admin3", "display_name": "Admin Station", "pin": "333333", "role": "admin", "counter_number": "03"},
+    {"username": "admin", "display_name": "Store Administrator", "pin": "1234", "role": "store_admin", "counter_number": None},
+    {"username": "staff01", "display_name": "Counter 01 Staff", "pin": "1234", "role": "admin", "counter_number": "01"},
+    {"username": "staff02", "display_name": "Counter 02 Staff", "pin": "1234", "role": "admin", "counter_number": "02"},
+    {"username": "staff03", "display_name": "Counter 03 Staff", "pin": "1234", "role": "admin", "counter_number": "03"},
+    {"username": "staff04", "display_name": "Counter 04 Staff", "pin": "1234", "role": "admin", "counter_number": "04"},
+    {"username": "staff07", "display_name": "Counter 07 Staff", "pin": "1234", "role": "admin", "counter_number": "07"},
 ]
 
 # Demo customer accounts — PIN: 1234
@@ -128,6 +128,7 @@ async def init_db(reset_stock: bool = False):
         for staff in SEED_ADMIN_USERS:
             res = await session.execute(select(User).where(User.username == staff["username"]))
             existing_user = res.scalars().first()
+            staff_role = staff.get("role", "admin")
             if not existing_user:
                 pin_hash, pin_salt = create_pin_hash(staff["pin"])
                 session.add(User(
@@ -135,18 +136,18 @@ async def init_db(reset_stock: bool = False):
                     display_name=staff["display_name"],
                     pin_hash=pin_hash,
                     pin_salt=pin_salt,
-                    role="admin",
+                    role=staff_role,
                     counter_number=staff["counter_number"],
                     is_active=True,
                 ))
-                logger.info(f"Seeded admin user: {staff['username']} → Counter {staff['counter_number']}")
+                logger.info(f"Seeded admin user: {staff['username']} → Counter {staff['counter_number']} (role: {staff_role})")
             else:
                 # Do NOT overwrite existing user PINs on restart — preserves user credentials
-                existing_user.role = "admin"
+                existing_user.role = staff_role
                 existing_user.display_name = staff["display_name"]
                 existing_user.counter_number = staff["counter_number"]
                 existing_user.is_active = True
-                logger.info(f"Verified admin user account exists: {staff['username']}")
+                logger.info(f"Verified admin user account exists: {staff['username']} (role: {staff_role})")
 
         # Seed demo customer account
         for cust in SEED_CUSTOMER_USERS:

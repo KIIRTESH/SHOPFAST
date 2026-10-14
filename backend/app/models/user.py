@@ -13,9 +13,9 @@ class User(Base, TimestampMixin):
     display_name: Mapped[str] = mapped_column(String(128), nullable=False)
     pin_hash: Mapped[str] = mapped_column(String(256), nullable=False)
     pin_salt: Mapped[str] = mapped_column(String(64), nullable=False)
-    # "customer" or "admin"
+    # "customer", "admin" (counter staff), or "store_admin" (store-wide administrator)
     role: Mapped[str] = mapped_column(String(16), default="customer", nullable=False)
-    # For admin users only — which counter they operate
+    # For counter staff — which counter register they operate (e.g. "01", "02", "03")
     counter_number: Mapped[Optional[str]] = mapped_column(String(8), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 

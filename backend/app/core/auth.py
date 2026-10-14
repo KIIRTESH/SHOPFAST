@@ -106,9 +106,9 @@ async def require_admin(
     authorization: Optional[str] = Header(default=None),
     db: AsyncSession = Depends(get_db),
 ):
-    """Dependency: ensures the authenticated user has the admin role."""
+    """Dependency: ensures the authenticated user has an admin or store_admin role."""
     user = await get_current_user(authorization=authorization, db=db)
-    if user.role != "admin":
+    if user.role not in ("admin", "store_admin"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required.",
@@ -119,33 +119,41 @@ async def require_admin(
 def is_store_admin(user) -> bool:
     """
     Returns True if user has store-wide administrator privileges across all counters.
-    Store admins can access, view, and verify orders across any counter.
-    Counter staff users (e.g. staff01) have a specific counter_number assigned and are restricted to their counter.
+    Determined strictly by explicit role 'store_admin'.
+    No hardcoded usernames or automatic fallbacks for missing counter assignments.
     """
-    if not user or getattr(user, "role", None) != "admin":
+    if not user or not getattr(user, "is_active", False):
         return False
-    # If username is "admin3" (the Store Admin) or "admin", or no specific counter is bound:
-    if getattr(user, "username", None) in ("admin3", "admin") or not getattr(user, "counter_number", None):
-        return True
-    return False
+    return getattr(user, "role", None) == "store_admin"
 
 
-def validate_counter_access(user, requested_counter: Optional[str]) -> str:
+def validate_counter_access(user, requested_counter: Optional[str] = None) -> str:
     """
     Validates and resolves the counter number for the authenticated user.
-    - If user is a store admin: allows the requested_counter (or defaults to requested_counter or '03').
-    - If user is a counter-specific staff: enforces user.counter_number.
-      If requested_counter is provided and differs, raises 403 Forbidden.
+    - If user is a store admin (role == 'store_admin'): allows the requested_counter (or defaults to '03').
+    - If user is counter staff:
+        - Must have a valid assigned counter_number.
+        - If counter_number is missing, empty, or ambiguous: raises 403 Forbidden.
+        - If requested_counter is provided and differs from assigned counter: raises 403 Forbidden.
     Returns the authoritative counter number.
     """
     if is_store_admin(user):
         return requested_counter or "03"
 
     staff_counter = getattr(user, "counter_number", None)
-    if requested_counter and staff_counter and requested_counter != staff_counter:
+    if not staff_counter or not str(staff_counter).strip():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: No counter assigned to this staff account."
+        )
+
+    staff_counter = str(staff_counter).strip()
+    if requested_counter and str(requested_counter).strip() != staff_counter:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Access denied: Counter terminal restricted to Counter {staff_counter}. Cannot access Counter {requested_counter}."
         )
-    return staff_counter or requested_counter or "03"
+
+    return staff_counter
+
 

@@ -1,9 +1,12 @@
+import uuid
 import pytest
 import httpx
 from app.main import app
 from app.models.order import Order
 from app.db.session import async_session_maker
 from sqlalchemy import select
+from app.models.user import User
+from app.core.auth import create_pin_hash
 
 
 @pytest.mark.asyncio
@@ -401,33 +404,59 @@ async def test_admin_portal_global_access_preserved(customer_auth_headers):
         }, headers=customer_auth_headers)
         o2_num = r2.json()["order_number"]
 
-        for admin_user, admin_pin in [("admin3", "333333"), ("admin", "1234")]:
-            login = await client.post("/api/v1/auth/login", json={"username": admin_user, "pin": admin_pin})
-            assert login.status_code == 200, f"Failed login for {admin_user}"
-            headers = {"Authorization": f"Bearer {login.json()['token']}"}
+        # 1. Store Administrator (username="admin", role="store_admin") has global access
+        login_sa = await client.post("/api/v1/auth/login", json={"username": "admin", "pin": "1234"})
+        assert login_sa.status_code == 200
+        sa_headers = {"Authorization": f"Bearer {login_sa.json()['token']}"}
 
-            # Admin can view Counter 01
-            resp_c1 = await client.get("/api/v1/admin/orders/active?counter_number=01", headers=headers)
-            assert resp_c1.status_code == 200
-            assert o1_num in {o["order_number"] for o in resp_c1.json()}
+        # Store Admin can view Counter 01
+        resp_c1 = await client.get("/api/v1/admin/orders/active?counter_number=01", headers=sa_headers)
+        assert resp_c1.status_code == 200
+        assert o1_num in {o["order_number"] for o in resp_c1.json()}
 
-            # Admin can view Counter 02
-            resp_c2 = await client.get("/api/v1/admin/orders/active?counter_number=02", headers=headers)
-            assert resp_c2.status_code == 200
-            assert o2_num in {o["order_number"] for o in resp_c2.json()}
+        # Store Admin can view Counter 02
+        resp_c2 = await client.get("/api/v1/admin/orders/active?counter_number=02", headers=sa_headers)
+        assert resp_c2.status_code == 200
+        assert o2_num in {o["order_number"] for o in resp_c2.json()}
 
-            # Admin can view order details directly
-            det1 = await client.get(f"/api/v1/admin/orders/{o1_num}", headers=headers)
-            assert det1.status_code == 200
-            det2 = await client.get(f"/api/v1/admin/orders/{o2_num}", headers=headers)
-            assert det2.status_code == 200
+        # Store Admin can view order details directly
+        det1 = await client.get(f"/api/v1/admin/orders/{o1_num}", headers=sa_headers)
+        assert det1.status_code == 200
+        det2 = await client.get(f"/api/v1/admin/orders/{o2_num}", headers=sa_headers)
+        assert det2.status_code == 200
 
-            # Admin can view store-wide transactions across all counters
-            tx_all = await client.get("/api/v1/admin/transactions", headers=headers)
-            assert tx_all.status_code == 200
-            tx_nums = {t["order_number"] for t in tx_all.json()}
-            assert o1_num in tx_nums
-            assert o2_num in tx_nums
+        # Store Admin can view store-wide transactions across all counters
+        tx_all = await client.get("/api/v1/admin/transactions", headers=sa_headers)
+        assert tx_all.status_code == 200
+        tx_nums = {t["order_number"] for t in tx_all.json()}
+        assert o1_num in tx_nums
+        assert o2_num in tx_nums
+
+        # 2. Counter 03 Staff (admin3) is restricted to Counter 03, NOT granted store-wide access
+        login_a3 = await client.post("/api/v1/auth/login", json={"username": "admin3", "pin": "333333"})
+        assert login_a3.status_code == 200
+        assert login_a3.json()["role"] == "admin"
+        assert login_a3.json()["counter_number"] == "03"
+        a3_headers = {"Authorization": f"Bearer {login_a3.json()['token']}"}
+
+        # admin3 is DENIED access to Counter 01 active orders
+        denied_c1 = await client.get("/api/v1/admin/orders/active?counter_number=01", headers=a3_headers)
+        assert denied_c1.status_code == 403
+
+        # admin3 is DENIED access to Counter 02 active orders
+        denied_c2 = await client.get("/api/v1/admin/orders/active?counter_number=02", headers=a3_headers)
+        assert denied_c2.status_code == 403
+
+        # admin3 is DENIED access to Counter 01 order details
+        denied_det1 = await client.get(f"/api/v1/admin/orders/{o1_num}", headers=a3_headers)
+        assert denied_det1.status_code == 403
+
+        # admin3 transactions are scoped to Counter 03 and do not expose Counter 01 or 02 orders
+        a3_tx = await client.get("/api/v1/admin/transactions", headers=a3_headers)
+        assert a3_tx.status_code == 200
+        a3_tx_nums = {t["order_number"] for t in a3_tx.json()}
+        assert o1_num not in a3_tx_nums
+        assert o2_num not in a3_tx_nums
 
 
 @pytest.mark.asyncio
@@ -584,7 +613,7 @@ async def test_section_5_nine_verification_scenarios(customer_auth_headers):
         assert num_b not in a_nums
 
         # Case 4: Switch repeatedly between counters and verify that no previous counter's data remains visible.
-        admin_login = await client.post("/api/v1/auth/login", json={"username": "admin3", "pin": "333333"})
+        admin_login = await client.post("/api/v1/auth/login", json={"username": "admin", "pin": "1234"})
         admin_headers = {"Authorization": f"Bearer {admin_login.json()['token']}"}
 
         for _ in range(3):
@@ -660,4 +689,239 @@ async def test_section_5_nine_verification_scenarios(customer_auth_headers):
         analytics_data = analytics_res.json()
         assert analytics_data["total_revenue"] > 0
         assert len(analytics_data["counters_overview"]) >= 3
+
+
+@pytest.mark.asyncio
+async def test_counter_authorization_and_store_admin_role_consistency(customer_auth_headers):
+    """
+    Targeted regression tests for Issue 1: Counter Authorization and Store Admin Role Inconsistency.
+    Verifies:
+    1. Counter 01 staff can access Counter 01.
+    2. Counter 01 staff are denied access to Counter 02.
+    3. Counter 03 staff, including admin3, cannot access store-wide admin operations unless explicitly assigned store-admin role.
+    4. The legitimate store administrator can access all counters.
+    5. An account with a missing or invalid counter assignment cannot gain store-wide access automatically and is denied counter access by default.
+    6. Changing the requested counter number (parameter tampering) does not bypass authorization.
+    7. Changing a username or using a username resembling admin does not grant store-admin privileges.
+    """
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        # Create orders at Counter 01, 02, and 03
+        r1 = await client.post("/api/v1/orders", json={
+            "customer_identifier": "Issue1 Cust 01",
+            "payment_method": "UPI",
+            "payment_status": "PAID",
+            "preferred_counter": "01",
+            "items": [{"product_barcode": "8901058003765", "product_name": "Maggi", "unit_price": 56.0, "quantity": 1}]
+        }, headers=customer_auth_headers)
+        assert r1.status_code == 201
+        num_1 = r1.json()["order_number"]
+
+        r2 = await client.post("/api/v1/orders", json={
+            "customer_identifier": "Issue1 Cust 02",
+            "payment_method": "CARD",
+            "payment_status": "PAID",
+            "preferred_counter": "02",
+            "items": [{"product_barcode": "8901063029255", "product_name": "JimJam", "unit_price": 20.0, "quantity": 1}]
+        }, headers=customer_auth_headers)
+        assert r2.status_code == 201
+        num_2 = r2.json()["order_number"]
+
+        r3 = await client.post("/api/v1/orders", json={
+            "customer_identifier": "Issue1 Cust 03",
+            "payment_method": "CASH",
+            "payment_status": "PAID",
+            "preferred_counter": "03",
+            "items": [{"product_barcode": "8901571005666", "product_name": "Sensodyne", "unit_price": 245.0, "quantity": 1}]
+        }, headers=customer_auth_headers)
+        assert r3.status_code == 201
+        num_3 = r3.json()["order_number"]
+
+        # 1. Counter 01 staff can access Counter 01
+        login_c1 = await client.post("/api/v1/auth/login", json={"username": "staff01", "pin": "1234"})
+        assert login_c1.status_code == 200
+        headers_c1 = {"Authorization": f"Bearer {login_c1.json()['token']}"}
+
+        c1_active = await client.get("/api/v1/admin/orders/active", headers=headers_c1)
+        assert c1_active.status_code == 200
+        assert num_1 in {o["order_number"] for o in c1_active.json()}
+
+        c1_order = await client.get(f"/api/v1/admin/orders/{num_1}", headers=headers_c1)
+        assert c1_order.status_code == 200
+        assert c1_order.json()["order_number"] == num_1
+
+        # 2. Counter 01 staff are denied access to Counter 02
+        c1_try_c2_active = await client.get("/api/v1/admin/orders/active?counter_number=02", headers=headers_c1)
+        assert c1_try_c2_active.status_code == 403
+
+        c1_try_c2_order = await client.get(f"/api/v1/admin/orders/{num_2}", headers=headers_c1)
+        assert c1_try_c2_order.status_code == 403
+
+        c1_try_c2_tx = await client.get("/api/v1/admin/transactions?counter=02", headers=headers_c1)
+        assert c1_try_c2_tx.status_code == 403
+
+        c1_try_c2_refund = await client.post(f"/api/v1/admin/transactions/{num_2}/refund", headers=headers_c1)
+        assert c1_try_c2_refund.status_code == 403
+
+        # 3. Counter 03 staff, including admin3, cannot access store-wide admin operations
+        login_a3 = await client.post("/api/v1/auth/login", json={"username": "admin3", "pin": "333333"})
+        assert login_a3.status_code == 200
+        data_a3 = login_a3.json()
+        assert data_a3["role"] == "admin"
+        assert data_a3["counter_number"] == "03"
+        headers_a3 = {"Authorization": f"Bearer {data_a3['token']}"}
+
+        # admin3 can access Counter 03
+        a3_active = await client.get("/api/v1/admin/orders/active", headers=headers_a3)
+        assert a3_active.status_code == 200
+        assert num_3 in {o["order_number"] for o in a3_active.json()}
+        assert num_1 not in {o["order_number"] for o in a3_active.json()}
+
+        # admin3 is DENIED store-wide access to Counter 01 and Counter 02
+        assert (await client.get("/api/v1/admin/orders/active?counter_number=01", headers=headers_a3)).status_code == 403
+        assert (await client.get("/api/v1/admin/orders/active?counter_number=02", headers=headers_a3)).status_code == 403
+        assert (await client.get(f"/api/v1/admin/orders/{num_1}", headers=headers_a3)).status_code == 403
+        assert (await client.get(f"/api/v1/admin/orders/{num_2}", headers=headers_a3)).status_code == 403
+        assert (await client.get("/api/v1/admin/transactions?counter=01", headers=headers_a3)).status_code == 403
+        assert (await client.post(f"/api/v1/admin/transactions/{num_1}/refund", headers=headers_a3)).status_code == 403
+
+        # Transactions for admin3 are automatically scoped to Counter 03
+        a3_tx = await client.get("/api/v1/admin/transactions", headers=headers_a3)
+        assert a3_tx.status_code == 200
+        a3_tx_nums = {t["order_number"] for t in a3_tx.json()}
+        assert num_3 in a3_tx_nums
+        assert num_1 not in a3_tx_nums
+        assert num_2 not in a3_tx_nums
+
+        # 4. Legitimate store administrator (role=store_admin) can access all counters
+        login_admin = await client.post("/api/v1/auth/login", json={"username": "admin", "pin": "1234"})
+        assert login_admin.status_code == 200
+        data_admin = login_admin.json()
+        assert data_admin["role"] == "store_admin"
+        headers_admin = {"Authorization": f"Bearer {data_admin['token']}"}
+
+        # Store admin can access Counter 01, 02, and 03
+        sa_c1 = await client.get("/api/v1/admin/orders/active?counter_number=01", headers=headers_admin)
+        assert sa_c1.status_code == 200
+        assert num_1 in {o["order_number"] for o in sa_c1.json()}
+
+        sa_c2 = await client.get("/api/v1/admin/orders/active?counter_number=02", headers=headers_admin)
+        assert sa_c2.status_code == 200
+        assert num_2 in {o["order_number"] for o in sa_c2.json()}
+
+        sa_c3 = await client.get("/api/v1/admin/orders/active?counter_number=03", headers=headers_admin)
+        assert sa_c3.status_code == 200
+        assert num_3 in {o["order_number"] for o in sa_c3.json()}
+
+        # Store admin can access order details across all counters
+        assert (await client.get(f"/api/v1/admin/orders/{num_1}", headers=headers_admin)).status_code == 200
+        assert (await client.get(f"/api/v1/admin/orders/{num_2}", headers=headers_admin)).status_code == 200
+        assert (await client.get(f"/api/v1/admin/orders/{num_3}", headers=headers_admin)).status_code == 200
+
+        # Store admin can access store-wide transactions across all counters
+        sa_tx = await client.get("/api/v1/admin/transactions", headers=headers_admin)
+        assert sa_tx.status_code == 200
+        sa_tx_nums = {t["order_number"] for t in sa_tx.json()}
+        assert num_1 in sa_tx_nums
+        assert num_2 in sa_tx_nums
+        assert num_3 in sa_tx_nums
+
+        # 5. Account with missing or invalid counter assignment cannot gain store-wide access
+        uid = uuid.uuid4().hex[:8]
+        user_nocounter = f"staff_nocounter_{uid}"
+        user_emptycounter = f"staff_empty_{uid}"
+
+        async with async_session_maker() as db:
+            h, s = create_pin_hash("9999")
+            db.add(User(
+                username=user_nocounter,
+                display_name="No Counter Staff",
+                pin_hash=h,
+                pin_salt=s,
+                role="admin",
+                counter_number=None
+            ))
+            db.add(User(
+                username=user_emptycounter,
+                display_name="Empty Counter Staff",
+                pin_hash=h,
+                pin_salt=s,
+                role="admin",
+                counter_number=""
+            ))
+            await db.commit()
+
+        login_nocounter = await client.post("/api/v1/auth/login", json={"username": user_nocounter, "pin": "9999"})
+        assert login_nocounter.status_code == 200
+        headers_nocounter = {"Authorization": f"Bearer {login_nocounter.json()['token']}"}
+
+        # Denied counter access by default
+        nc_resp = await client.get("/api/v1/admin/orders/active", headers=headers_nocounter)
+        assert nc_resp.status_code == 403
+        assert "No counter assigned" in nc_resp.json()["detail"]
+
+        nc_resp_c1 = await client.get("/api/v1/admin/orders/active?counter_number=01", headers=headers_nocounter)
+        assert nc_resp_c1.status_code == 403
+
+        nc_tx = await client.get("/api/v1/admin/transactions", headers=headers_nocounter)
+        assert nc_tx.status_code == 403
+
+        nc_det = await client.get(f"/api/v1/admin/orders/{num_1}", headers=headers_nocounter)
+        assert nc_det.status_code == 403
+
+        # Empty counter also denied
+        login_empty = await client.post("/api/v1/auth/login", json={"username": user_emptycounter, "pin": "9999"})
+        assert login_empty.status_code == 200
+        headers_empty = {"Authorization": f"Bearer {login_empty.json()['token']}"}
+        empty_resp = await client.get("/api/v1/admin/orders/active", headers=headers_empty)
+        assert empty_resp.status_code == 403
+
+        # 6. Parameter tampering does not bypass authorization
+        tamper_c1_c2 = await client.get("/api/v1/admin/orders/active?counter_number=02", headers=headers_c1)
+        assert tamper_c1_c2.status_code == 403
+
+        tamper_c1_c3 = await client.get("/api/v1/admin/orders/active?counter_number=03", headers=headers_c1)
+        assert tamper_c1_c3.status_code == 403
+
+        tamper_c1_c99 = await client.get("/api/v1/admin/orders/active?counter_number=99", headers=headers_c1)
+        assert tamper_c1_c99.status_code == 403
+
+        tamper_lookup = await client.post("/api/v1/admin/verify/lookup", headers=headers_c1, json={
+            "token_or_order_number": num_2,
+            "counter_number": "02"
+        })
+        assert tamper_lookup.status_code == 403
+
+        # 7. Resembling username does not grant store-admin privileges
+        user_lookalike = f"admin_lookalike_{uid}"
+        async with async_session_maker() as db:
+            h2, s2 = create_pin_hash("8888")
+            db.add(User(
+                username=user_lookalike,
+                display_name="Admin Lookalike Staff",
+                pin_hash=h2,
+                pin_salt=s2,
+                role="admin",
+                counter_number="01"
+            ))
+            await db.commit()
+
+        login_lookalike = await client.post("/api/v1/auth/login", json={"username": user_lookalike, "pin": "8888"})
+        assert login_lookalike.status_code == 200
+        assert login_lookalike.json()["role"] == "admin"
+        headers_lookalike = {"Authorization": f"Bearer {login_lookalike.json()['token']}"}
+
+        # Lookalike staff can access its own counter
+        lookalike_own = await client.get("/api/v1/admin/orders/active", headers=headers_lookalike)
+        assert lookalike_own.status_code == 200
+        assert num_1 in {o["order_number"] for o in lookalike_own.json()}
+
+        # Lookalike staff CANNOT access other counters or store-wide data
+        lookalike_other = await client.get("/api/v1/admin/orders/active?counter_number=02", headers=headers_lookalike)
+        assert lookalike_other.status_code == 403
+
+        lookalike_other_order = await client.get(f"/api/v1/admin/orders/{num_2}", headers=headers_lookalike)
+        assert lookalike_other_order.status_code == 403
+
+        lookalike_other_tx = await client.get("/api/v1/admin/transactions?counter=02", headers=headers_lookalike)
+        assert lookalike_other_tx.status_code == 403
 

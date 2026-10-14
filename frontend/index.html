@@ -4771,8 +4771,8 @@
           body: JSON.stringify({ username, pin })
         });
 
-        // If admin (e.g. admin3 with PIN 333333), do not leak admin token into customer localStorage
-        if (res.role === 'admin') {
+        // If admin or store_admin, do not leak admin token into customer localStorage
+        if (res.role === 'admin' || res.role === 'store_admin') {
           // Store token in session-only storage for the admin portal redirect
           sessionStorage.setItem('SHOPFAST_ADMIN_PENDING_TOKEN', res.token);
           document.getElementById('authLoginCard').style.display = 'none';
