@@ -2384,6 +2384,11 @@
       if (tabId === 'tab-counters') loadCountersData();
       if (tabId === 'tab-transactions') loadTransactionsData();
       if (tabId === 'tab-catalog') loadCatalogData();
+
+      // Safely turn off camera scanner when switching away from POS verification tab
+      if (tabId !== 'tab-verify' && state.cameraActive) {
+        toggleCameraScanner();
+      }
     }
 
     function handleAdminPopState(event) {
@@ -2618,8 +2623,8 @@
           body: JSON.stringify({ token_or_order_number: orderNumber, counter_number: currentCounter })
         });
         // Discard if counter switched while in flight
-        if (seq !== undefined && seq !== counterSwitchSeq) return;
-        if (state.counterNumber !== currentCounter) return;
+        if (seq !== undefined && seq !== counterSwitchSeq) return null;
+        if (state.counterNumber !== currentCounter) return null;
 
         state.activeOrder = detail;
         state.discrepancyActive = false;
@@ -2630,9 +2635,11 @@
         document.querySelectorAll('.order-queue-chip').forEach(btn => {
           btn.classList.toggle('active', btn.textContent.includes(detail.order_number));
         });
+        return detail;
       } catch (err) {
-        if (seq !== undefined && seq !== counterSwitchSeq) return;
+        if (seq !== undefined && seq !== counterSwitchSeq) return null;
         showToast('Could not load order: ' + err.message, true);
+        throw err;
       }
     }
 
@@ -2723,87 +2730,149 @@
     /* =========================================================================
        8. BARCODE SCANNING & VERIFICATION ENGINE
        ========================================================================= */
+    let isAdminScanProcessing = false;
+
     async function scanBarcode(barcode) {
       if (!barcode) return;
-      const cleanBarcode = barcode.trim();
+      const cleanBarcode = String(barcode).trim();
+      if (!cleanBarcode) return;
 
-      // Check if scanned barcode is a customer Fast-Pass order barcode
-      const isOrderPass = cleanBarcode.toUpperCase().startsWith('FS-') || cleanBarcode.toUpperCase().startsWith('SF-');
-      if (isOrderPass || !state.activeOrder) {
-        try {
-          await selectOrderForVerification(cleanBarcode, counterSwitchSeq);
-          playSound('beep');
-          return;
-        } catch (err) {
-          if (isOrderPass) {
-            alert('Could not find order #' + cleanBarcode + ': ' + err.message);
-            return;
-          }
-        }
-      }
-
-      if (!state.activeOrder) {
-        showToast('Scan customer Fast-Pass (FS-XXXXXX) or click an order to start verification', true);
-        const statusEl = document.getElementById('adminScannerStatusLabel');
-        if (statusEl) statusEl.textContent = 'Awaiting Fast-Pass or Order Selection';
-        return;
-      }
-
-      const heroTarget = document.getElementById('scannerHeroTarget');
-      if (heroTarget) {
-        heroTarget.classList.add('active-pulse');
-        setTimeout(() => heroTarget.classList.remove('active-pulse'), 300);
-      }
+      // Prevent concurrent duplicate verification requests
+      if (isAdminScanProcessing) return;
+      isAdminScanProcessing = true;
 
       try {
-        const res = await apiRequest('/api/v1/admin/verify/scan', {
-          method: 'POST',
-          body: JSON.stringify({
-            order_number: state.activeOrder.order_number,
-            scanned_barcode: barcode.trim(),
-            counter_number: state.counterNumber
-          })
-        });
+        // 1. Check if scanned barcode is a customer Fast-Pass order barcode or QR token
+        const isOrderPass = cleanBarcode.toUpperCase().startsWith('FS-') || 
+                            cleanBarcode.toUpperCase().startsWith('SF-') || 
+                            (cleanBarcode.startsWith('{') && cleanBarcode.includes('order'));
 
-        // Update state
-        state.activeOrder = res.order;
-
-        if (res.status === 'UNEXPECTED_ITEM') {
-          playSound('buzz');
-          state.discrepancyActive = true;
-          document.getElementById('discrepancyItemName').textContent = res.product_name || `Barcode: ${barcode}`;
-          document.getElementById('audioFeedbackText').textContent = `Discrepancy: ${res.message}`;
-          renderActiveVerification(res.order);
+        if (isOrderPass) {
+          try {
+            await selectOrderForVerification(cleanBarcode, counterSwitchSeq);
+            playSound('beep');
+            showToast(`✓ Order loaded for verification`);
+            const statusEl = document.getElementById('adminScannerStatusLabel');
+            if (statusEl && state.activeOrder) {
+              statusEl.textContent = `✓ Order #${state.activeOrder.order_number} active`;
+            }
+          } catch (err) {
+            playSound('buzz');
+            showToast(`Could not find order #${cleanBarcode}: ${err.message}`, true);
+            const statusEl = document.getElementById('adminScannerStatusLabel');
+            if (statusEl) statusEl.textContent = `Order not found: ${cleanBarcode}`;
+          }
           return;
         }
 
-        // Valid Match
-        playSound('beep');
-        state.discrepancyActive = false;
-
-        // Show match announcement banner
-        const matchBanner = document.getElementById('matchAnnouncementCard');
-        matchBanner.style.display = 'flex';
-        document.getElementById('matchAnnouncementTitle').textContent = `✓ ITEM MATCHED`;
-        document.getElementById('matchAnnouncementSub').textContent = `${res.product_name} • MATCH CONFIRMED`;
-        document.getElementById('audioFeedbackText').textContent = `Beep! ${res.product_name} matched successfully.`;
-
-        // Check if cleared
-        if (res.is_all_matched) {
-          playSound('cleared');
-          if (window.confetti) {
-            window.confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
-          }
-          if (state.verificationStartTime) {
-            state.verificationElapsedSeconds = Math.max(8, Math.round((Date.now() - state.verificationStartTime) / 1000));
-          }
+        // Pulse visual scanner reticle
+        const heroTarget = document.getElementById('scannerHeroTarget');
+        if (heroTarget) {
+          heroTarget.classList.add('active-pulse');
+          setTimeout(() => heroTarget.classList.remove('active-pulse'), 300);
         }
 
-        renderActiveVerification(res.order);
+        // 2. Active order verification flow: cashier scanning items against customer's paid cart
+        if (state.activeOrder) {
+          try {
+            const res = await apiRequest('/api/v1/admin/verify/scan', {
+              method: 'POST',
+              body: JSON.stringify({
+                order_number: state.activeOrder.order_number,
+                scanned_barcode: cleanBarcode,
+                counter_number: state.counterNumber
+              })
+            });
 
-      } catch (err) {
-        playSound('buzz');
-        alert('Scan Error: ' + err.message);
+            // Update state with refreshed order verification detail
+            state.activeOrder = res.order;
+
+            if (res.status === 'UNEXPECTED_ITEM') {
+              playSound('buzz');
+              state.discrepancyActive = true;
+              const discItem = document.getElementById('discrepancyItemName');
+              if (discItem) discItem.textContent = res.product_name || `Barcode: ${cleanBarcode}`;
+              const audioEl = document.getElementById('audioFeedbackText');
+              if (audioEl) audioEl.textContent = `Discrepancy: ${res.message}`;
+              const statusEl = document.getElementById('adminScannerStatusLabel');
+              if (statusEl) statusEl.textContent = `⚠️ Flagged: ${res.product_name || cleanBarcode}`;
+              renderActiveVerification(res.order);
+              return;
+            }
+
+            // Valid Match
+            playSound('beep');
+            state.discrepancyActive = false;
+
+            // Show match announcement banner
+            const matchBanner = document.getElementById('matchAnnouncementCard');
+            if (matchBanner) matchBanner.style.display = 'flex';
+            const titleEl = document.getElementById('matchAnnouncementTitle');
+            if (titleEl) titleEl.textContent = `✓ ITEM MATCHED`;
+            const subEl = document.getElementById('matchAnnouncementSub');
+            if (subEl) subEl.textContent = `${res.product_name} • MATCH CONFIRMED`;
+            const audioEl = document.getElementById('audioFeedbackText');
+            if (audioEl) audioEl.textContent = `Beep! ${res.product_name} matched successfully.`;
+            const statusEl = document.getElementById('adminScannerStatusLabel');
+            if (statusEl) statusEl.textContent = `✓ Matched: ${res.product_name}`;
+
+            // Check if cleared
+            if (res.is_all_matched) {
+              playSound('cleared');
+              if (window.confetti) {
+                window.confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+              }
+              if (state.verificationStartTime) {
+                state.verificationElapsedSeconds = Math.max(8, Math.round((Date.now() - state.verificationStartTime) / 1000));
+              }
+            }
+
+            renderActiveVerification(res.order);
+
+          } catch (err) {
+            playSound('buzz');
+            showToast(`Scan Error: ${err.message}`, true);
+            const audioEl = document.getElementById('audioFeedbackText');
+            if (audioEl) audioEl.textContent = `⚠️ ${err.message}`;
+            const statusEl = document.getElementById('adminScannerStatusLabel');
+            if (statusEl) statusEl.textContent = `Scan error: ${err.message}`;
+          }
+          return;
+        }
+
+        // 3. Standalone product lookup when no active order is selected
+        try {
+          const product = await apiRequest(`/api/v1/products/barcode/${encodeURIComponent(cleanBarcode)}`);
+          playSound('beep');
+
+          // Display product's existing details and verification status in the UI
+          const matchBanner = document.getElementById('matchAnnouncementCard');
+          if (matchBanner) matchBanner.style.display = 'flex';
+          const titleEl = document.getElementById('matchAnnouncementTitle');
+          if (titleEl) titleEl.textContent = `✓ PRODUCT VERIFIED`;
+          const subEl = document.getElementById('matchAnnouncementSub');
+          if (subEl) subEl.textContent = `${product.name} • ₹${product.price} • Stock: ${product.stock_qty} (SKU: ${product.barcode})`;
+          const audioEl = document.getElementById('audioFeedbackText');
+          if (audioEl) audioEl.textContent = `✓ ${product.name} (₹${product.price}) retrieved from database. Select customer order to verify basket.`;
+          const statusEl = document.getElementById('adminScannerStatusLabel');
+          if (statusEl) statusEl.textContent = `✓ Scanned: ${product.name} (₹${product.price})`;
+
+          showToast(`✓ ${product.name} — ₹${product.price} (Stock: ${product.stock_qty})`);
+
+        } catch (err) {
+          playSound('buzz');
+          const isNotFound = err.message && (err.message.includes('not found') || err.message.includes('404'));
+          const errMsg = isNotFound ? `Product with barcode '${cleanBarcode}' not found in database.` : `Lookup Error: ${err.message}`;
+
+          showToast(errMsg, true);
+          const audioEl = document.getElementById('audioFeedbackText');
+          if (audioEl) audioEl.textContent = `⚠️ ${errMsg}`;
+          const statusEl = document.getElementById('adminScannerStatusLabel');
+          if (statusEl) statusEl.textContent = `⚠️ Unknown: ${cleanBarcode}`;
+        }
+
+      } finally {
+        isAdminScanProcessing = false;
       }
     }
 
@@ -3182,7 +3251,9 @@
             }
             document.getElementById('adminCameraErrorText').textContent = msg;
           }
-          if (statusLabel) statusLabel.textContent = 'Camera error';
+          if (statusLabel) {
+            statusLabel.innerHTML = `📷 Camera error &nbsp;<button type="button" onclick="startAdminCamera()" style="padding:2px 8px;border-radius:4px;background:var(--primary);color:#fff;border:none;cursor:pointer;font-size:10px;font-weight:700;">Retry</button>`;
+          }
         }
       } catch (fatalErr) {
         console.error('Fatal admin scanner error:', fatalErr);
@@ -3190,13 +3261,16 @@
           errBox.style.display = 'block';
           document.getElementById('adminCameraErrorText').textContent = 'Scanner error: ' + (fatalErr.message || 'unknown');
         }
-        if (statusLabel) statusLabel.textContent = 'Camera error';
+        if (statusLabel && session === adminCameraSessionId) {
+          statusLabel.innerHTML = `Scanner error &nbsp;<button type="button" onclick="startAdminCamera()" style="padding:2px 8px;border-radius:4px;background:var(--primary);color:#fff;border:none;cursor:pointer;font-size:10px;font-weight:700;">Retry</button>`;
+        }
       }
     }
 
     function handleAdminBarcodeScanned(decodedText) {
       if (!decodedText) return;
       const code = String(decodedText).trim();
+      if (!code) return;
       const now = Date.now();
       const statusLabel = document.getElementById('adminScannerStatusLabel');
 
@@ -3208,10 +3282,17 @@
         }
       });
 
+      // Ignore duplicate scan events within 1200ms
       if (code === lastAdminScanned && (now - lastAdminScanTime) < 1200) {
         if (statusLabel) statusLabel.textContent = `Scanned: ${code} (hold item)`;
         return;
       }
+
+      // If an existing verification request is already in-flight, skip duplicate trigger
+      if (isAdminScanProcessing) {
+        return;
+      }
+
       lastAdminScanned = code;
       lastAdminScanTime = now;
 
@@ -3666,6 +3747,19 @@
 
       // Setup tab history & deep linking
       window.addEventListener('popstate', handleAdminPopState);
+
+      // Safe camera cleanup on page navigation / close
+      window.addEventListener('beforeunload', () => {
+        if (state.cameraActive) {
+          stopAdminCamera();
+        }
+      });
+      window.addEventListener('pagehide', () => {
+        if (state.cameraActive) {
+          stopAdminCamera();
+        }
+      });
+
       const initialAdminTab = ADMIN_ROUTE_TO_TAB[window.location.hash] || 'tab-verify';
       try {
         history.replaceState({ tabId: initialAdminTab }, '', ADMIN_TAB_ROUTES[initialAdminTab] || '#verify');
