@@ -485,7 +485,7 @@
 
     .phone-device {
       width: 100%;
-      max-width: 300px;
+      max-width: 350px;
       background: #FFFFFF;
       border-radius: 30px;
       border: 6px solid #1E293B;
@@ -553,7 +553,7 @@
       color: var(--orange-primary);
       border-radius: var(--radius-md);
       padding: 9px;
-      font-size: 12px;
+      font-size: 12.5px;
       font-weight: 800;
       display: flex;
       align-items: center;
@@ -590,22 +590,23 @@
     .cart-item-info {
       display: flex;
       align-items: center;
-      gap: 9px;
+      gap: 10px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .cart-item-text {
       min-width: 0;
       flex: 1;
       overflow: hidden;
     }
 
-    .cart-item-info > div {
-      min-width: 0;
-      overflow: hidden;
-    }
-
     .cart-item-icon {
       font-size: 20px;
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       background: var(--bg-subtle);
+      border: 1px solid var(--border-light);
       border-radius: 8px;
       display: flex;
       align-items: center;
@@ -614,10 +615,10 @@
     }
 
     .cart-item-title {
-      font-size: 12.5px;
+      font-size: 13px;
       font-weight: 700;
       color: var(--text-heading);
-      line-height: 1.2;
+      line-height: 1.25;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -625,8 +626,9 @@
 
     .cart-item-barcode {
       font-family: var(--font-mono);
-      font-size: 10px;
+      font-size: 10.5px;
       color: var(--text-muted);
+      margin-top: 2px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -634,27 +636,45 @@
 
     .cart-item-controls {
       display: flex;
-      align-items: center;
-      gap: 6px;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 5px;
       flex-shrink: 0;
     }
 
-    .qty-btn {
-      width: 44px;
-      height: 44px;
-      min-width: 44px;
-      min-height: 44px;
-      background: var(--bg-subtle);
-      border: 1px solid var(--border-light);
-      border-radius: 8px;
+    .cart-item-price {
+      font-family: var(--font-mono);
+      font-size: 13.5px;
       font-weight: 800;
-      font-size: 16px;
+      color: var(--text-heading);
+      text-align: right;
+    }
+
+    .cart-stepper {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .qty-btn {
+      width: 24px;
+      height: 24px;
+      min-width: 24px;
+      min-height: 24px;
+      background: #F1F5F9;
+      border: 1px solid #CBD5E1;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 14px;
+      line-height: 1;
       color: var(--text-body);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 0;
       touch-action: manipulation;
+      transition: all 0.15s ease;
     }
 
     .qty-btn:hover {
@@ -663,20 +683,16 @@
       border-color: var(--orange-border);
     }
 
-    .item-qty-num {
-      font-size: 12px;
-      font-weight: 700;
-      min-width: 14px;
-      text-align: center;
+    .qty-btn:active {
+      transform: scale(0.92);
     }
 
-    .cart-item-price {
-      font-family: var(--font-mono);
+    .item-qty-num {
       font-size: 12.5px;
-      font-weight: 800;
+      font-weight: 700;
+      min-width: 16px;
+      text-align: center;
       color: var(--text-heading);
-      min-width: 54px;
-      text-align: right;
     }
 
     /* Checkout & Pass Box */
@@ -1410,24 +1426,23 @@
       .phone-device {
         border-width: 5px;
         border-radius: 24px;
+        max-width: 100%;
       }
-      /* Shrink qty buttons slightly so row fits at 320px */
       .qty-btn {
-        width: 36px;
-        height: 36px;
-        min-width: 36px;
-        min-height: 36px;
-        font-size: 14px;
+        width: 22px;
+        height: 22px;
+        min-width: 22px;
+        min-height: 22px;
+        font-size: 13px;
       }
       .cart-item-price {
-        font-size: 11.5px;
-        min-width: 44px;
+        font-size: 12.5px;
       }
       .cart-item-title {
-        font-size: 11.5px;
+        font-size: 12px;
       }
       .cart-item-barcode {
-        font-size: 9px;
+        font-size: 9.5px;
       }
       .phone-body {
         padding: 10px;
@@ -1654,9 +1669,9 @@
             <div class="phone-scan-action-bar">
               <button type="button" class="btn-mock-scan" onclick="simulateScanItem()">
                 <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.3" d="M12 4v16m8-8H4" />
                 </svg>
-                + Scan Item (Camera)
+                Scan Item (Camera)
               </button>
             </div>
 
@@ -1666,16 +1681,18 @@
               <div class="cart-item-row" id="itemRow-amul">
                 <div class="cart-item-info">
                   <div class="cart-item-icon">🥛</div>
-                  <div>
+                  <div class="cart-item-text">
                     <div class="cart-item-title">Amul Taaza Milk 1L</div>
                     <div class="cart-item-barcode">890103038384</div>
                   </div>
                 </div>
                 <div class="cart-item-controls">
-                  <button class="qty-btn" onclick="updateQty('amul', -1)">-</button>
-                  <span class="item-qty-num" id="qty-amul">1</span>
-                  <button class="qty-btn" onclick="updateQty('amul', 1)">+</button>
                   <div class="cart-item-price" id="price-amul">₹68.00</div>
+                  <div class="cart-stepper">
+                    <button type="button" class="qty-btn" onclick="updateQty('amul', -1)">-</button>
+                    <span class="item-qty-num" id="qty-amul">1</span>
+                    <button type="button" class="qty-btn" onclick="updateQty('amul', 1)">+</button>
+                  </div>
                 </div>
               </div>
 
@@ -1683,16 +1700,18 @@
               <div class="cart-item-row" id="itemRow-maggi">
                 <div class="cart-item-info">
                   <div class="cart-item-icon">🍜</div>
-                  <div>
+                  <div class="cart-item-text">
                     <div class="cart-item-title">Maggi 2-Minute Noodles</div>
                     <div class="cart-item-barcode">8901058003765</div>
                   </div>
                 </div>
                 <div class="cart-item-controls">
-                  <button class="qty-btn" onclick="updateQty('maggi', -1)">-</button>
-                  <span class="item-qty-num" id="qty-maggi">2</span>
-                  <button class="qty-btn" onclick="updateQty('maggi', 1)">+</button>
                   <div class="cart-item-price" id="price-maggi">₹112.00</div>
+                  <div class="cart-stepper">
+                    <button type="button" class="qty-btn" onclick="updateQty('maggi', -1)">-</button>
+                    <span class="item-qty-num" id="qty-maggi">2</span>
+                    <button type="button" class="qty-btn" onclick="updateQty('maggi', 1)">+</button>
+                  </div>
                 </div>
               </div>
 
@@ -1700,16 +1719,18 @@
               <div class="cart-item-row" id="itemRow-sensodyne">
                 <div class="cart-item-info">
                   <div class="cart-item-icon">🪥</div>
-                  <div>
+                  <div class="cart-item-text">
                     <div class="cart-item-title">Sensodyne Toothpaste</div>
                     <div class="cart-item-barcode">8901571005666</div>
                   </div>
                 </div>
                 <div class="cart-item-controls">
-                  <button class="qty-btn" onclick="updateQty('sensodyne', -1)">-</button>
-                  <span class="item-qty-num" id="qty-sensodyne">1</span>
-                  <button class="qty-btn" onclick="updateQty('sensodyne', 1)">+</button>
                   <div class="cart-item-price" id="price-sensodyne">₹245.00</div>
+                  <div class="cart-stepper">
+                    <button type="button" class="qty-btn" onclick="updateQty('sensodyne', -1)">-</button>
+                    <span class="item-qty-num" id="qty-sensodyne">1</span>
+                    <button type="button" class="qty-btn" onclick="updateQty('sensodyne', 1)">+</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2045,16 +2066,18 @@
       newRow.innerHTML = `
         <div class="cart-item-info">
           <div class="cart-item-icon">🍪</div>
-          <div>
+          <div class="cart-item-text">
             <div class="cart-item-title">Britannia Good Day Biscuits</div>
             <div class="cart-item-barcode">8901063065406</div>
           </div>
         </div>
         <div class="cart-item-controls">
-          <button class="qty-btn" onclick="updateQty('goodday', -1)">-</button>
-          <span class="item-qty-num" id="qty-goodday">1</span>
-          <button class="qty-btn" onclick="updateQty('goodday', 1)">+</button>
           <div class="cart-item-price" id="price-goodday">₹40.00</div>
+          <div class="cart-stepper">
+            <button type="button" class="qty-btn" onclick="updateQty('goodday', -1)">-</button>
+            <span class="item-qty-num" id="qty-goodday">1</span>
+            <button type="button" class="qty-btn" onclick="updateQty('goodday', 1)">+</button>
+          </div>
         </div>
       `;
       cartList.prepend(newRow);
