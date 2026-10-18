@@ -12,6 +12,22 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = False
     
+    # Production Seeding & Credential Security
+    ALLOW_DEFAULT_CREDENTIALS: Union[bool, None] = None
+    INITIAL_ADMIN_USERNAME: Union[str, None] = None
+    INITIAL_ADMIN_PIN: Union[str, None] = None
+
+    @property
+    def should_seed_demo_accounts(self) -> bool:
+        """
+        Determines whether demo accounts (e.g. admin with PIN 1234) should be seeded.
+        In development/testing, defaults to True for instant testing and fixture support.
+        In production, defaults to False to prevent exposing default privileged credentials.
+        """
+        if self.ALLOW_DEFAULT_CREDENTIALS is not None:
+            return self.ALLOW_DEFAULT_CREDENTIALS
+        return self.ENVIRONMENT.lower() != "production"
+    
     # Database configuration (Defaults to async SQLite for instant zero-config testing; easily switchable to PostgreSQL)
     DATABASE_URL: str = "sqlite+aiosqlite:///./fastshop.db"
     

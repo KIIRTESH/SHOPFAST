@@ -1,3 +1,9 @@
+databases:
+  - name: fastshop-postgres
+    plan: free
+    databaseName: fastshop
+    user: fastshop
+
 services:
   - type: web
     name: fastshop
@@ -15,6 +21,8 @@ services:
       - key: DEBUG
         value: "false"
       - key: DATABASE_URL
-        value: sqlite+aiosqlite:///./fastshop.db
+        fromDatabase:
+          name: fastshop-postgres
+          property: connectionString
       - key: CORS_ORIGINS
         value: "https://fastshop.onrender.com"

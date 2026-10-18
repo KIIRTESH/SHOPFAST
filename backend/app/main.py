@@ -31,14 +31,36 @@ def get_frontend_dir() -> Path | None:
 frontend_dir = get_frontend_dir()
 
 
+import re
+
+def _sanitize_error_message(err_str: str) -> str:
+    """Sanitize error messages to ensure no passwords or connection strings are exposed in logs or API responses."""
+    if not err_str:
+        return "Unknown database error"
+    # Mask password in URLs: ://user:password@ -> ://user:***@
+    sanitized = re.sub(r"://([^:]+):([^@]+)@", r"://\1:***@", err_str)
+    # Mask password=... in query strings or DSNs
+    sanitized = re.sub(r"password=([^\s;]+)", "password=***", sanitized, flags=re.IGNORECASE)
+    # Mask token/secret
+    sanitized = re.sub(r"(token|secret|key)=([^\s;]+)", r"\1=***", sanitized, flags=re.IGNORECASE)
+    return sanitized
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"Starting {settings.PROJECT_NAME} v{settings.VERSION}...")
+    app.state.db_ready = False
+    app.state.db_error = None
     try:
         await init_db()
+        app.state.db_ready = True
         logger.info("Database initialized and seeded.")
     except Exception as e:
-        logger.error(f"DB initialization error: {e}", exc_info=True)
+        safe_error = _sanitize_error_message(str(e))
+        app.state.db_error = safe_error
+        logger.error(f"DB initialization error: {safe_error}", exc_info=True)
+        if settings.ENVIRONMENT.lower() in ("production", "prod"):
+            raise
     yield
     logger.info(f"Shutting down {settings.PROJECT_NAME}...")
 
@@ -79,10 +101,64 @@ app.add_middleware(
 app.include_router(api_v1_router, prefix=settings.API_V1_STR)
 
 
+@app.get("/health/live", tags=["Health"])
+async def liveness_check():
+    """
+    Liveness probe: verifies process responsiveness without requiring database connectivity.
+    """
+    return {
+        "status": "alive",
+        "service": settings.PROJECT_NAME,
+        "version": settings.VERSION,
+    }
+
+
 @app.get("/health", tags=["Health"])
+@app.get("/health/ready", tags=["Health"])
 async def health_check():
+    """
+    Readiness probe for orchestrators (Render, K8s, Docker).
+    Probes database readiness and connectivity, returning 503 if unavailable.
+    """
+    from sqlalchemy import text
+    from app.db.session import engine
+
+    db_ready = getattr(app.state, "db_ready", None)
+    if db_ready is False:
+        raw_error = getattr(app.state, "db_error", "Database initialization not completed")
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "status": "unhealthy",
+                "database": "uninitialized",
+                "detail": _sanitize_error_message(str(raw_error)),
+                "service": settings.PROJECT_NAME,
+                "version": settings.VERSION,
+                "environment": settings.ENVIRONMENT,
+            }
+        )
+
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+    except Exception as e:
+        safe_error = _sanitize_error_message(str(e))
+        logger.warning(f"Health check DB probe failed: {safe_error}")
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "status": "unhealthy",
+                "database": "unavailable",
+                "detail": safe_error,
+                "service": settings.PROJECT_NAME,
+                "version": settings.VERSION,
+                "environment": settings.ENVIRONMENT,
+            }
+        )
+
     return {
         "status": "healthy",
+        "database": "connected",
         "service": settings.PROJECT_NAME,
         "version": settings.VERSION,
         "environment": settings.ENVIRONMENT,

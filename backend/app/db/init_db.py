@@ -6,6 +6,7 @@ from app.models.product import Product
 from app.models.counter import Counter
 from app.models.user import User
 from app.core.auth import create_pin_hash
+from app.core.config import settings
 from app.db.session import engine
 
 logger = logging.getLogger("fastshop.init_db")
@@ -125,44 +126,69 @@ async def init_db(reset_stock: bool = False):
                 session.add(Counter(**c))
 
         # Seed/update admin staff accounts
-        for staff in SEED_ADMIN_USERS:
-            res = await session.execute(select(User).where(User.username == staff["username"]))
-            existing_user = res.scalars().first()
-            staff_role = staff.get("role", "admin")
-            if not existing_user:
-                pin_hash, pin_salt = create_pin_hash(staff["pin"])
-                session.add(User(
-                    username=staff["username"],
-                    display_name=staff["display_name"],
-                    pin_hash=pin_hash,
-                    pin_salt=pin_salt,
-                    role=staff_role,
-                    counter_number=staff["counter_number"],
-                    is_active=True,
-                ))
-                logger.info(f"Seeded admin user: {staff['username']} → Counter {staff['counter_number']} (role: {staff_role})")
-            else:
-                # Do NOT overwrite existing user PINs on restart — preserves user credentials
-                existing_user.role = staff_role
-                existing_user.display_name = staff["display_name"]
-                existing_user.counter_number = staff["counter_number"]
-                existing_user.is_active = True
-                logger.info(f"Verified admin user account exists: {staff['username']} (role: {staff_role})")
-
-        # Seed demo customer account
-        for cust in SEED_CUSTOMER_USERS:
-            res = await session.execute(select(User).where(User.username == cust["username"]))
+        if settings.should_seed_demo_accounts:
+            for staff in SEED_ADMIN_USERS:
+                res = await session.execute(select(User).where(User.username == staff["username"]))
+                existing_user = res.scalars().first()
+                staff_role = staff.get("role", "admin")
+                if not existing_user:
+                    pin_hash, pin_salt = create_pin_hash(staff["pin"])
+                    session.add(User(
+                        username=staff["username"],
+                        display_name=staff["display_name"],
+                        pin_hash=pin_hash,
+                        pin_salt=pin_salt,
+                        role=staff_role,
+                        counter_number=staff["counter_number"],
+                        is_active=True,
+                    ))
+                    logger.info(f"Seeded admin user: {staff['username']} → Counter {staff['counter_number']} (role: {staff_role})")
+                else:
+                    # Do NOT overwrite existing user PINs on restart — preserves user credentials
+                    existing_user.role = staff_role
+                    existing_user.display_name = staff["display_name"]
+                    existing_user.counter_number = staff["counter_number"]
+                    existing_user.is_active = True
+                    logger.info(f"Verified admin user account exists: {staff['username']} (role: {staff_role})")
+        elif settings.INITIAL_ADMIN_USERNAME and settings.INITIAL_ADMIN_PIN:
+            # Secure initial store admin provisioning for production environments
+            res = await session.execute(select(User).where(User.username == settings.INITIAL_ADMIN_USERNAME))
             if not res.scalars().first():
-                pin_hash, pin_salt = create_pin_hash(cust["pin"])
+                pin_hash, pin_salt = create_pin_hash(settings.INITIAL_ADMIN_PIN)
                 session.add(User(
-                    username=cust["username"],
-                    display_name=cust["display_name"],
+                    username=settings.INITIAL_ADMIN_USERNAME,
+                    display_name="Store Administrator",
                     pin_hash=pin_hash,
                     pin_salt=pin_salt,
-                    role="customer",
+                    role="store_admin",
+                    counter_number=None,
                     is_active=True,
                 ))
-                logger.info(f"Seeded customer user: {cust['username']}")
+                logger.info(f"Provisioned initial production store admin: {settings.INITIAL_ADMIN_USERNAME}")
+        else:
+            # Production environment: Verify whether an admin exists, warn if unconfigured
+            res = await session.execute(select(User).where(User.role.in_(["store_admin", "admin"])))
+            if not res.scalars().first():
+                logger.warning(
+                    "PRODUCTION SECURITY NOTE: No admin accounts seeded with default credentials. "
+                    "Configure INITIAL_ADMIN_USERNAME and INITIAL_ADMIN_PIN in your environment."
+                )
+
+        # Seed demo customer accounts
+        if settings.should_seed_demo_accounts:
+            for cust in SEED_CUSTOMER_USERS:
+                res = await session.execute(select(User).where(User.username == cust["username"]))
+                if not res.scalars().first():
+                    pin_hash, pin_salt = create_pin_hash(cust["pin"])
+                    session.add(User(
+                        username=cust["username"],
+                        display_name=cust["display_name"],
+                        pin_hash=pin_hash,
+                        pin_salt=pin_salt,
+                        role="customer",
+                        is_active=True,
+                    ))
+                    logger.info(f"Seeded customer user: {cust['username']}")
 
         await session.commit()
         logger.info("Database seeding complete.")
