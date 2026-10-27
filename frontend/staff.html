@@ -1274,17 +1274,17 @@
       font-family: var(--font-mono);
       text-transform: uppercase;
     }
-    .status-badge.verified, .status-badge.completed, .status-badge.open {
+    .status-badge.verified, .status-badge.cleared, .status-badge.completed, .status-badge.open {
       background: var(--green-bg);
       color: var(--green);
       border: 1px solid var(--green-border);
     }
-    .status-badge.pending, .status-badge.awaiting {
+    .status-badge.in_progress, .status-badge.pending, .status-badge.awaiting {
       background: var(--orange-bg);
       color: var(--orange);
       border: 1px solid var(--orange-border);
     }
-    .status-badge.flagged, .status-badge.closed, .status-badge.refunded {
+    .status-badge.flagged, .status-badge.closed, .status-badge.cancelled, .status-badge.refunded {
       background: var(--red-bg);
       color: var(--red);
       border: 1px solid var(--red-border);
@@ -1848,7 +1848,7 @@
             <input type="text" id="staffTxSearchInput" placeholder="Search Order # or Customer..." class="scan-input" style="max-width:240px;" oninput="onStaffTxSearchChange(this.value)">
             <select id="staffTxFilterStatus" class="scan-input" style="max-width:160px;" onchange="loadStaffTransactions()">
               <option value="">All Statuses</option>
-              <option value="VERIFIED">Cleared / Verified</option>
+              <option value="CLEARED">Cleared / Verified</option>
               <option value="PENDING">Pending</option>
               <option value="FLAGGED">Flagged</option>
               <option value="REFUNDED">Refunded</option>

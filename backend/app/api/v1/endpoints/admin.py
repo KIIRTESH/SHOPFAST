@@ -267,6 +267,7 @@ async def get_order_verification_detail(
 @router.get("/transactions", response_model=List[AdminTransactionSummary])
 async def list_transactions_ledger(
     counter: Optional[str] = Query(None, description="Filter by counter number"),
+    counter_number: Optional[str] = Query(None, description="Filter by counter number alias"),
     status: Optional[str] = Query(None, description="Filter by verification status (VERIFIED, PENDING, FLAGGED)"),
     search: Optional[str] = Query(None, description="Search by Order # or Customer"),
     date: Optional[str] = Query(None, description="Filter by date ('today' or 'YYYY-MM-DD')"),
@@ -276,13 +277,14 @@ async def list_transactions_ledger(
     db: AsyncSession = Depends(get_db)
 ):
     """Returns store-wide transaction audit ledger with real-time filters."""
+    target_counter = counter or counter_number
     if not is_store_admin(current_admin):
-        eff_counter = await validate_counter_access(current_admin, counter, db=db)
-        counter = eff_counter
+        eff_counter = await validate_counter_access(current_admin, target_counter, db=db)
+        target_counter = eff_counter
 
     return await admin_service.get_transactions(
         db=db,
-        counter_number=counter,
+        counter_number=target_counter,
         status_filter=status,
         search=search,
         date_filter=date,
