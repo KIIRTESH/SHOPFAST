@@ -196,6 +196,7 @@ async def customer_app():
 
 @app.get("/admin", tags=["Frontend"])
 @app.get("/admin.html", tags=["Frontend"])
+@app.get("/admin/login", tags=["Frontend"])
 async def admin_portal():
     """Admin store-wide management portal."""
     if frontend_dir and (frontend_dir / "admin.html").exists():
@@ -205,6 +206,7 @@ async def admin_portal():
 
 @app.get("/staff", tags=["Frontend"])
 @app.get("/staff.html", tags=["Frontend"])
+@app.get("/staff/login", tags=["Frontend"])
 async def staff_portal():
     """Staff POS verification terminal."""
     if frontend_dir and (frontend_dir / "staff.html").exists():

@@ -4746,6 +4746,10 @@
     function launchAdminTerminal(counterNumber) {
       const cNum = counterNumber || '03';
       localStorage.setItem('SHOPFAST_COUNTER', cNum);
+      const pending = sessionStorage.getItem('SHOPFAST_ADMIN_PENDING_TOKEN');
+      if (pending) {
+        localStorage.setItem('SHOPFAST_TOKEN', pending);
+      }
       window.location.href = `/admin?counter=${encodeURIComponent(cNum)}`;
     }
 
@@ -4775,21 +4779,22 @@
           body: JSON.stringify({ username, pin })
         });
 
-        // If admin or store_admin, do not leak admin token into customer localStorage
-        if (res.role === 'admin' || res.role === 'store_admin') {
-          // Store token in session-only storage for the admin portal redirect
-          sessionStorage.setItem('SHOPFAST_ADMIN_PENDING_TOKEN', res.token);
-          document.getElementById('authLoginCard').style.display = 'none';
-          document.getElementById('authRegisterCard').style.display = 'none';
-          const counterCard = document.getElementById('authCounterSelectCard');
-          if (counterCard) {
-            counterCard.style.display = 'block';
-            document.getElementById('adminLoggedInUser').textContent = res.username || 'admin';
-          } else {
-            launchAdminTerminal(res.counter_number || '03');
+        // If store_admin: establish session and navigate directly to Admin Dashboard
+        if (res.role === 'store_admin') {
+          localStorage.setItem('SHOPFAST_TOKEN', res.token);
+          sessionStorage.removeItem('SHOPFAST_ADMIN_PENDING_TOKEN');
+          window.location.href = '/admin';
+          return;
+        }
+
+        // If counter staff: establish session and navigate directly to assigned Staff Dashboard
+        if (res.role === 'admin' || res.role === 'staff') {
+          localStorage.setItem('SHOPFAST_TOKEN', res.token);
+          if (res.counter_number) {
+            localStorage.setItem('SHOPFAST_COUNTER', res.counter_number);
           }
-          btn.disabled = false;
-          btn.textContent = 'Log In →';
+          sessionStorage.removeItem('SHOPFAST_ADMIN_PENDING_TOKEN');
+          window.location.href = '/staff';
           return;
         }
 

@@ -2010,10 +2010,13 @@
        ========================================================================= -->
   <script>
     const API_BASE = '';
-    let authToken = localStorage.getItem('SHOPFAST_TOKEN') || null;
+    let authToken = localStorage.getItem('SHOPFAST_TOKEN') || sessionStorage.getItem('SHOPFAST_ADMIN_PENDING_TOKEN') || null;
     if (authToken === 'undefined' || authToken === 'null' || !authToken) {
       authToken = null;
       localStorage.removeItem('SHOPFAST_TOKEN');
+      sessionStorage.removeItem('SHOPFAST_ADMIN_PENDING_TOKEN');
+    } else {
+      localStorage.setItem('SHOPFAST_TOKEN', authToken);
     }
 
     const state = {
@@ -2671,12 +2674,18 @@
       handleStaffLoginSubmit(fakeEvent);
     }
 
+    let staffLoginInFlight = false;
     async function handleStaffLoginSubmit(e) {
       if (e && e.preventDefault) e.preventDefault();
+      if (staffLoginInFlight) return;
       const u = document.getElementById('loginUsernameInput').value.trim();
       const p = document.getElementById('loginPinInput').value.trim();
       const btn = document.getElementById('btnLoginSubmit');
+      
+      staffLoginInFlight = true;
       btn.disabled = true;
+      const originalText = btn.innerHTML;
+      btn.textContent = 'Authenticating...';
 
       try {
         const res = await apiRequest('/api/v1/auth/login', {
@@ -2686,6 +2695,18 @@
 
         authToken = res.token || res.access_token;
         localStorage.setItem('SHOPFAST_TOKEN', authToken);
+        sessionStorage.removeItem('SHOPFAST_ADMIN_PENDING_TOKEN');
+
+        if (res.role === 'store_admin') {
+          showToast('Store Administrator credentials detected. Redirecting to Admin Portal...', false);
+          setTimeout(() => { window.location.href = '/admin'; }, 500);
+          return;
+        }
+
+        if (res.counter_number) {
+          localStorage.setItem('SHOPFAST_COUNTER', res.counter_number);
+        }
+
         document.getElementById('staffLoginModal').style.display = 'none';
         initStaffTerminal();
       } catch (err) {
@@ -2693,7 +2714,9 @@
         errEl.textContent = err.message;
         errEl.style.display = 'block';
       } finally {
+        staffLoginInFlight = false;
         btn.disabled = false;
+        btn.innerHTML = originalText;
       }
     }
 

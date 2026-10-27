@@ -1212,10 +1212,13 @@
        ========================================================================= -->
   <script>
     const API_BASE = '';
-    let authToken = localStorage.getItem('SHOPFAST_TOKEN') || null;
+    let authToken = localStorage.getItem('SHOPFAST_TOKEN') || sessionStorage.getItem('SHOPFAST_ADMIN_PENDING_TOKEN') || null;
     if (authToken === 'undefined' || authToken === 'null' || !authToken) {
       authToken = null;
       localStorage.removeItem('SHOPFAST_TOKEN');
+      sessionStorage.removeItem('SHOPFAST_ADMIN_PENDING_TOKEN');
+    } else {
+      localStorage.setItem('SHOPFAST_TOKEN', authToken);
     }
 
     const state = {
@@ -1830,12 +1833,18 @@
       handleAdminLoginSubmit(fakeEvent);
     }
 
+    let adminLoginInFlight = false;
     async function handleAdminLoginSubmit(e) {
       if (e && e.preventDefault) e.preventDefault();
+      if (adminLoginInFlight) return;
       const u = document.getElementById('adminUsernameInput').value.trim();
       const p = document.getElementById('adminPinInput').value.trim();
       const btn = document.getElementById('btnAdminLoginSubmit');
+      
+      adminLoginInFlight = true;
       btn.disabled = true;
+      const originalText = btn.innerHTML;
+      btn.textContent = 'Authenticating...';
 
       try {
         const res = await apiRequest('/api/v1/auth/login', {
@@ -1845,6 +1854,16 @@
 
         authToken = res.token || res.access_token;
         localStorage.setItem('SHOPFAST_TOKEN', authToken);
+        sessionStorage.removeItem('SHOPFAST_ADMIN_PENDING_TOKEN');
+
+        if (res.role !== 'store_admin') {
+          if (res.role === 'admin' || res.role === 'staff') {
+            showToast('Staff credentials detected. Redirecting to Staff Portal...', false);
+            setTimeout(() => { window.location.href = '/staff'; }, 500);
+            return;
+          }
+        }
+
         document.getElementById('adminLoginModal').style.display = 'none';
         initAdminPortal();
       } catch (err) {
@@ -1852,7 +1871,9 @@
         errEl.textContent = err.message;
         errEl.style.display = 'block';
       } finally {
+        adminLoginInFlight = false;
         btn.disabled = false;
+        btn.innerHTML = originalText;
       }
     }
 
