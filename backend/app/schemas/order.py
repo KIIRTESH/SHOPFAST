@@ -29,6 +29,7 @@ class OrderCreate(BaseModel):
     # clients are ignored by pydantic.
     preferred_counter: Optional[str] = None
     cart_id: Optional[str] = None
+    idempotency_key: Optional[str] = None
 
     @field_validator("payment_method")
     @classmethod
@@ -56,6 +57,7 @@ class OrderRead(BaseModel):
     verification_status: str = "PENDING"
     verification_duration_seconds: Optional[int] = None
     verified_at: Optional[datetime] = None
+    idempotency_key: Optional[str] = None
     qr_token: str
     created_at: datetime
     items: List[OrderItemRead]

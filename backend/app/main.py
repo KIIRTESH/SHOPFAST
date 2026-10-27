@@ -197,10 +197,20 @@ async def customer_app():
 @app.get("/admin", tags=["Frontend"])
 @app.get("/admin.html", tags=["Frontend"])
 async def admin_portal():
-    """Admin / Counter Staff verification terminal."""
+    """Admin store-wide management portal."""
     if frontend_dir and (frontend_dir / "admin.html").exists():
         return FileResponse(frontend_dir / "admin.html", media_type="text/html")
     return {"message": "Admin terminal not found."}
+
+
+@app.get("/staff", tags=["Frontend"])
+@app.get("/staff.html", tags=["Frontend"])
+async def staff_portal():
+    """Staff POS verification terminal."""
+    if frontend_dir and (frontend_dir / "staff.html").exists():
+        return FileResponse(frontend_dir / "staff.html", media_type="text/html")
+    return {"message": "Staff terminal not found."}
+
 
 
 # Static file serving

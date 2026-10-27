@@ -62,3 +62,17 @@ class UserProfile(BaseModel):
     counter_number: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ChangePinRequest(BaseModel):
+    current_pin: str
+    new_pin: str
+
+    @field_validator("new_pin")
+    @classmethod
+    def pin_valid(cls, v: str) -> str:
+        v = v.strip()
+        if not v.isdigit() or len(v) < 4 or len(v) > 8:
+            raise ValueError("PIN must be 4–8 digits.")
+        return v
+

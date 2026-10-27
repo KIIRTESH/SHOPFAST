@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Optional
 from fastapi import WebSocket
 from app.schemas.ws import WebSocketMessage
 
@@ -38,17 +38,37 @@ class ConnectionManager:
                 try:
                     await ws.send_text(payload)
                 except Exception as e:
-                    logger.warning(f"Error sending WS message to client: {e}")
+                    logger.warning(f"Error sending WS message to client on {channel}: {e}")
                     dead_sockets.append(ws)
             
             # Clean up dead sockets
             for ws in dead_sockets:
                 self.disconnect(ws, channel)
 
+    async def broadcast_order_event(self, order_number: str, counter_number: Optional[str], message: WebSocketMessage):
+        """
+        Broadcast order event to all relevant authorized channels:
+        the order's direct channel, the assigned counter's channel, the admin channel, and global store channel.
+        """
+        channels = set(["global", "admin"])
+        if order_number:
+            channels.add(f"order:{order_number}")
+        if counter_number:
+            channels.add(f"counter:{counter_number}")
+        
+        for ch in channels:
+            await self.broadcast_to_channel(ch, message)
+
     async def broadcast_global(self, message: WebSocketMessage):
         """Broadcast to all connected channels across the store."""
         for channel in list(self.active_channels.keys()):
             await self.broadcast_to_channel(channel, message)
+
+    def get_channel_count(self, channel: str) -> int:
+        return len(self.active_channels.get(channel, set()))
+
+    def active_clients_count(self) -> int:
+        return sum(len(sockets) for sockets in self.active_channels.values())
 
 
 ws_manager = ConnectionManager()

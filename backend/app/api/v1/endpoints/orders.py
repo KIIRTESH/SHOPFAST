@@ -70,6 +70,7 @@ async def _assign_counter(db: AsyncSession, total_item_units: int) -> Counter:
 @router.post("", response_model=OrderRead, status_code=status.HTTP_201_CREATED)
 async def create_order(
     payload: OrderCreate,
+    x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -82,11 +83,21 @@ async def create_order(
     - QR token contains only the order_number — no sensitive data in the barcode.
     - Counter is assigned by least-load algorithm, not by client preference.
     - Order is linked to the authenticated user_id for history retrieval.
+    - Idempotency key prevents duplicate charges or double stock decrements on network retry.
     """
     if not payload.items:
         raise HTTPException(status_code=400, detail="Order must contain at least 1 item.")
 
     user = current_user
+
+    # --- Idempotency Check: prevent duplicate orders on retry ---
+    idemp_key = payload.idempotency_key or (x_idempotency_key.strip() if x_idempotency_key else None)
+    if idemp_key:
+        idemp_stmt = select(Order).where(Order.idempotency_key == idemp_key)
+        idemp_res = await db.execute(idemp_stmt)
+        existing_order = idemp_res.scalars().first()
+        if existing_order:
+            return existing_order
 
     # --- Server-side price validation & atomic stock decrement ---
     validated_items = []
@@ -192,6 +203,7 @@ async def create_order(
         assigned_counter_number=assigned_counter.counter_number,
         qr_token=qr_token,
         verification_status="PENDING",
+        idempotency_key=idemp_key,
     )
     db.add(order)
     await db.flush()
@@ -220,19 +232,32 @@ async def create_order(
     await db.refresh(order)
 
     # Real-time WebSocket broadcasts across store
-    # 1. Counter specific alert
+    # 1. Counter specific alert (broadcasts to counter channel, admin, and order channel)
+    order_notification = WebSocketMessage(
+        event="NEW_ORDER_ASSIGNED",
+        counter_number=assigned_counter.counter_number,
+        data={
+            "order_number": order.order_number,
+            "customer": order.customer_identifier,
+            "items_count": len(validated_items),
+            "total": order.total_amount,
+            "assigned_counter_number": assigned_counter.counter_number,
+            "verification_status": order.verification_status,
+        },
+    )
+    await ws_manager.broadcast_order_event(
+        order_number=order.order_number,
+        counter_number=assigned_counter.counter_number,
+        message=order_notification
+    )
+    # Also broadcast alias NEW_ORDER for compatibility
     await ws_manager.broadcast_to_channel(
         f"counter:{assigned_counter.counter_number}",
         WebSocketMessage(
-            event="NEW_ORDER_ASSIGNED",
+            event="NEW_ORDER",
             counter_number=assigned_counter.counter_number,
-            data={
-                "order_number": order.order_number,
-                "customer": order.customer_identifier,
-                "items_count": len(validated_items),
-                "total": order.total_amount,
-            },
-        ),
+            data=order_notification.data
+        )
     )
 
     # 2. Global real-time transaction event (updates admin transactions ledger, queue, and KPIs)

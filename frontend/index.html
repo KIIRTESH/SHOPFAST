@@ -3306,12 +3306,16 @@
       <div class="drawer-nav-item" onclick="closeDrawer(); openVisualBarcodesModal();">
         <span class="nav-icon">📱</span> Product Barcodes Sheet
       </div>
+      <div class="drawer-nav-item" onclick="closeDrawer(); window.location.href='/staff';">
+        <span class="nav-icon">🖥️</span> Staff POS Terminal
+      </div>
       <div class="drawer-nav-item" onclick="closeDrawer(); window.location.href='/admin';">
-        <span class="nav-icon">🖥️</span> Staff / Cashier POS
+        <span class="nav-icon">🛡️</span> Admin Management
       </div>
       <div class="drawer-nav-item" onclick="closeDrawer(); window.location.href='/';">
         <span class="nav-icon">🌐</span> Store Landing Showcase
       </div>
+
     </div>
     <div class="drawer-footer">
       <button class="drawer-logout-btn" onclick="doLogout()">
@@ -6797,6 +6801,13 @@
                   }
                 });
                 render();
+              } else if (msg.event === 'VERIFICATION_STARTED' && state.completedOrder && msg.data?.order_number === state.completedOrder.order_number) {
+                const title = document.getElementById('passCounterTitle');
+                if (title) title.textContent = `Cashier is now verifying your cart items...`;
+                showToast(`Cashier started verifying your cart at Counter ${msg.data.counter_number}`);
+              } else if (msg.event === 'VERIFICATION_PROGRESS' && state.completedOrder && msg.data?.order_number === state.completedOrder.order_number) {
+                const title = document.getElementById('passCounterTitle');
+                if (title) title.textContent = `Verifying items: ${msg.data.items_verified} / ${msg.data.items_expected} matched`;
               } else if (
                 (msg.event === 'ORDER_CLEARED_RELEASED' || msg.event === 'ORDER_VERIFIED') &&
                 state.completedOrder && msg.data && msg.data.order_number === state.completedOrder.order_number

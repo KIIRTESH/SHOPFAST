@@ -11,8 +11,31 @@ from app.schemas.cart import (
     CartItemCreate, 
     CartItemUpdate
 )
+from app.schemas.ws import WebSocketMessage
+from app.services.websocket_manager import ws_manager
 
 router = APIRouter(prefix="/carts", tags=["Carts"])
+
+
+async def _broadcast_cart_update(cart: Cart):
+    """Broadcasts cart changes to listening customer or monitor channels."""
+    try:
+        subtotal = sum(itm.unit_price * itm.quantity for itm in cart.items)
+        await ws_manager.broadcast_to_channel(
+            f"cart:{cart.id}",
+            WebSocketMessage(
+                event="CART_UPDATED",
+                data={
+                    "cart_id": cart.id,
+                    "customer_identifier": cart.customer_identifier,
+                    "status": cart.status,
+                    "items_count": len(cart.items),
+                    "subtotal": round(subtotal, 2)
+                }
+            )
+        )
+    except Exception:
+        pass
 
 
 async def _get_cart_with_items(db: AsyncSession, cart_id: str, user: User) -> Cart:
@@ -136,7 +159,9 @@ async def add_item_to_cart(
         db.add(new_item)
 
     await db.commit()
-    return await _get_cart_with_items(db, cart_id, current_user)
+    cart = await _get_cart_with_items(db, cart_id, current_user)
+    await _broadcast_cart_update(cart)
+    return cart
 
 
 @router.patch("/{cart_id}/items/{barcode}", response_model=CartRead)
@@ -181,7 +206,9 @@ async def update_cart_item_quantity(
             item.unit_price = product.price
 
     await db.commit()
-    return await _get_cart_with_items(db, cart_id, current_user)
+    cart = await _get_cart_with_items(db, cart_id, current_user)
+    await _broadcast_cart_update(cart)
+    return cart
 
 
 @router.delete("/{cart_id}/items/{barcode}", response_model=CartRead)
@@ -203,7 +230,9 @@ async def remove_cart_item(
         await db.delete(item)
         await db.commit()
 
-    return await _get_cart_with_items(db, cart_id, current_user)
+    cart = await _get_cart_with_items(db, cart_id, current_user)
+    await _broadcast_cart_update(cart)
+    return cart
 
 
 @router.delete("/{cart_id}", response_model=CartRead)
@@ -222,4 +251,6 @@ async def clear_cart(
     for item in items:
         await db.delete(item)
     await db.commit()
-    return await _get_cart_with_items(db, cart_id, current_user)
+    cart = await _get_cart_with_items(db, cart_id, current_user)
+    await _broadcast_cart_update(cart)
+    return cart

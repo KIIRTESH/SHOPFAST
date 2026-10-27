@@ -152,6 +152,19 @@ class AdminService:
             order.verification_status = "IN_PROGRESS"
             await db.commit()
             await db.refresh(order)
+            await ws_manager.broadcast_order_event(
+                order_number=order.order_number,
+                counter_number=order.assigned_counter_number,
+                message=WebSocketMessage(
+                    event="VERIFICATION_STARTED",
+                    counter_number=order.assigned_counter_number,
+                    data={
+                        "order_number": order.order_number,
+                        "counter_number": order.assigned_counter_number,
+                        "verification_status": "IN_PROGRESS"
+                    }
+                )
+            )
 
         return await self._build_order_detail(db, order)
 
@@ -174,6 +187,12 @@ class AdminService:
         if not order:
             raise ValueError(f"Order #{order_number} not found.")
 
+        # State transition validation: cannot re-scan cleared or cancelled orders
+        if order.is_verified_by_cashier or order.verification_status == "CLEARED":
+            raise ValueError(f"Order #{order.order_number} has already been verified and cleared for exit.")
+        if order.verification_status == "CANCELLED" or order.payment_status == "REFUNDED":
+            raise ValueError(f"Order #{order.order_number} is cancelled or refunded and cannot be verified.")
+
         # Counter Isolation Check
         if counter_number:
             if not order.assigned_counter_number or order.assigned_counter_number in ("", "UNASSIGNED"):
@@ -182,7 +201,6 @@ class AdminService:
                 raise ValueError(
                     f"Order #{order.order_number} is assigned to Counter {order.assigned_counter_number}, not Counter {counter_number}."
                 )
-
 
         # Find line item matching barcode
         target_item: Optional[OrderItem] = None
@@ -246,26 +264,28 @@ class AdminService:
         # Refresh detail after commit
         updated_detail = await self._build_order_detail(db, order)
 
-        # Broadcast scan event on WebSocket
-        await ws_manager.broadcast_to_channel(
-            f"counter:{counter_number}",
-            WebSocketMessage(
-                event="VERIFICATION_PROGRESS",
-                counter_number=counter_number,
-                data={
-                    "order_number": order.order_number,
-                    "status": status_code,
-                    "matched_barcode": clean_barcode,
-                    "product_name": target_item.product_name,
-                    "items_verified": updated_detail.items_verified_count,
-                    "items_expected": updated_detail.items_expected_count,
-                    "is_all_matched": updated_detail.is_all_matched
-                }
-            )
+        # Broadcast scan event on WebSocket (to counter, order, admin)
+        progress_msg = WebSocketMessage(
+            event="VERIFICATION_PROGRESS",
+            counter_number=counter_number,
+            data={
+                "order_number": order.order_number,
+                "status": status_code,
+                "matched_barcode": clean_barcode,
+                "product_name": target_item.product_name,
+                "items_verified": updated_detail.items_verified_count,
+                "items_expected": updated_detail.items_expected_count,
+                "is_all_matched": updated_detail.is_all_matched
+            }
+        )
+        await ws_manager.broadcast_order_event(
+            order_number=order.order_number,
+            counter_number=counter_number,
+            message=progress_msg
         )
 
         if updated_detail.is_all_matched:
-            # Broadcast clearance globally to customer screen
+            # Broadcast clearance across store
             cleared_event = WebSocketMessage(
                 event="ORDER_CLEARED_RELEASED",
                 counter_number=counter_number,
@@ -277,8 +297,24 @@ class AdminService:
                     "verification_status": "CLEARED"
                 }
             )
-            await ws_manager.broadcast_to_channel(f"counter:{counter_number}", cleared_event)
-            await ws_manager.broadcast_global(cleared_event)
+            await ws_manager.broadcast_order_event(
+                order_number=order.order_number,
+                counter_number=counter_number,
+                message=cleared_event
+            )
+            # Update admin transaction ledger in real-time
+            await ws_manager.broadcast_to_channel(
+                "admin",
+                WebSocketMessage(
+                    event="TRANSACTION_UPDATED",
+                    counter_number=counter_number,
+                    data={
+                        "order_number": order.order_number,
+                        "verification_status": "CLEARED",
+                        "is_verified_by_cashier": True
+                    }
+                )
+            )
 
         return (
             status_code,
@@ -305,6 +341,10 @@ class AdminService:
         if not order:
             raise ValueError(f"Order #{order_number} not found.")
 
+        # Lifecycle validation
+        if order.verification_status == "CANCELLED" or order.payment_status == "REFUNDED":
+            raise ValueError("Cannot complete verification on a cancelled or refunded order.")
+
         # Counter Isolation Check
         if counter_number:
             if not order.assigned_counter_number or order.assigned_counter_number in ("", "UNASSIGNED"):
@@ -326,7 +366,7 @@ class AdminService:
         await db.commit()
         await db.refresh(order)
 
-        # Broadcast completion to counter channel and global store channel
+        # Broadcast completion to counter channel, order channel, admin, and global store channel
         msg = WebSocketMessage(
             event="ORDER_CLEARED_RELEASED",
             counter_number=counter_number,
@@ -338,8 +378,23 @@ class AdminService:
                 "verification_status": "CLEARED"
             }
         )
-        await ws_manager.broadcast_to_channel(f"counter:{counter_number}", msg)
-        await ws_manager.broadcast_global(msg)
+        await ws_manager.broadcast_order_event(
+            order_number=order.order_number,
+            counter_number=counter_number,
+            message=msg
+        )
+        await ws_manager.broadcast_to_channel(
+            "admin",
+            WebSocketMessage(
+                event="TRANSACTION_UPDATED",
+                counter_number=counter_number,
+                data={
+                    "order_number": order.order_number,
+                    "verification_status": "CLEARED",
+                    "is_verified_by_cashier": True
+                }
+            )
+        )
 
         return await self._build_order_detail(db, order)
 
@@ -433,11 +488,18 @@ class AdminService:
         flag_count = flag_res.scalar() or 0
 
         # Counter by counter summary with counter revenue
-        c_stmt = select(Counter).where(Counter.is_active == True)
+        c_stmt = select(Counter).order_by(Counter.counter_number)
         c_res = await db.execute(c_stmt)
         counters = c_res.scalars().all()
         counters_overview = []
+        open_counters_count = 0
+        closed_counters_count = 0
         for c in counters:
+            if c.is_active:
+                open_counters_count += 1
+            else:
+                closed_counters_count += 1
+
             c_rev_stmt = select(
                 func.coalesce(func.sum(Order.total_amount), 0.0)
             ).where(
@@ -465,6 +527,33 @@ class AdminService:
                 "waiting_orders": int(c_waiting)
             })
 
+        # Pending verifications store-wide
+        pending_verif_stmt = select(func.count(Order.id)).where(
+            Order.is_verified_by_cashier == False,
+            Order.payment_status == "PAID",
+            Order.verification_status != "CANCELLED"
+        )
+        pending_verif_res = await db.execute(pending_verif_stmt)
+        pending_verifications_count = pending_verif_res.scalar() or 0
+
+        # Active online staff
+        from app.models.user import User
+        from app.models.session import UserSession
+        now = datetime.now(timezone.utc)
+        active_staff_stmt = select(func.count(func.distinct(UserSession.user_id))).join(
+            User, UserSession.user_id == User.id
+        ).where(
+            UserSession.expires_at > now,
+            User.role.in_(["admin", "staff"])
+        )
+        try:
+            active_staff_res = await db.execute(active_staff_stmt)
+            active_staff_count = active_staff_res.scalar() or 0
+        except Exception:
+            active_staff_count = 0
+
+        recent_tx = await self.get_transactions(db=db, limit=8)
+
         return AdminAnalyticsResponse(
             today_sales_total=round(float(total_sales), 2),
             total_revenue=round(float(total_revenue), 2),
@@ -473,7 +562,12 @@ class AdminService:
             avg_verification_seconds=round(float(avg_duration), 1),
             flagged_discrepancies_count=int(flag_count),
             active_queue_length=int(queue_count),
-            counters_overview=counters_overview
+            open_counters_count=open_counters_count,
+            closed_counters_count=closed_counters_count,
+            active_staff_count=active_staff_count,
+            pending_verifications_count=pending_verifications_count,
+            counters_overview=counters_overview,
+            recent_activity=recent_tx
         )
 
     async def get_transactions(
@@ -482,6 +576,7 @@ class AdminService:
         counter_number: Optional[str] = None,
         status_filter: Optional[str] = None,
         search: Optional[str] = None,
+        date_filter: Optional[str] = None,
         limit: int = 50,
         skip: int = 0
     ) -> List[AdminTransactionSummary]:
@@ -490,6 +585,20 @@ class AdminService:
 
         if counter_number:
             stmt = stmt.where(Order.assigned_counter_number == counter_number)
+
+        if date_filter:
+            df = date_filter.strip().lower()
+            if df == "today":
+                today_start = datetime.combine(date.today(), datetime.min.time())
+                stmt = stmt.where(Order.created_at >= today_start)
+            else:
+                try:
+                    target_d = date.fromisoformat(df)
+                    day_start = datetime.combine(target_d, datetime.min.time())
+                    day_end = datetime.combine(target_d, datetime.max.time())
+                    stmt = stmt.where(Order.created_at >= day_start, Order.created_at <= day_end)
+                except ValueError:
+                    pass
 
         if status_filter:
             sf = status_filter.upper()

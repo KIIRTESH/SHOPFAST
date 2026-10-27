@@ -93,6 +93,7 @@ async def init_db(reset_stock: bool = False):
             "ALTER TABLE orders ADD COLUMN verified_at DATETIME DEFAULT NULL",
             "ALTER TABLE order_items ADD COLUMN verified_quantity INTEGER DEFAULT 0",
             f"ALTER TABLE orders ADD COLUMN user_id INTEGER{fk_clause}",
+            "ALTER TABLE orders ADD COLUMN idempotency_key VARCHAR(64) DEFAULT NULL",
         ]
         for stmt in migration_statements:
             try:

@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#070D1E">
+  <title>ShopFast — Staff Counter POS Terminal</title>
+
+  <script>
+    if (location.protocol === 'http:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1' && !location.hostname.startsWith('192.168.') && !location.hostname.startsWith('10.')) {
+      location.replace('https://' + location.host + location.pathname + location.search + location.hash);
+    }
+  </script>
+
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Scanning & Confetti Libraries -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script>
+    if (!window.Html5Qrcode) {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"><\/script>');
+    }
+  </script>
+  <script>
+    (function() {
+      function silenceScannerPaused() {
+        if (window.Html5Qrcode && Html5Qrcode.prototype) {
+          Html5Qrcode.prototype.showPausedState = function() {};
+          Html5Qrcode.prototype.hidePausedState = function() {};
+        }
+      }
+      silenceScannerPaused();
+      document.addEventListener('DOMContentLoaded', silenceScannerPaused);
+      window.addEventListener('load', silenceScannerPaused);
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <style>
+    :root {
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      --sb-bg: #070D1E;
+      --sb-surface: #0E172F;
+      --sb-border: #1B284A;
+      --sb-text: #94A3B8;
+      --sb-text-bright: #F8FAFC;
+      --sb-active-bg: rgba(255, 85, 0, 0.12);
+      --sb-active-border: #FF5500;
+
+      --bg: #F8FAFC;
+      --surface: #FFFFFF;
+      --surface-subtle: #F1F5F9;
+      --border: #E2E8F0;
+      --border-strong: #CBD5E1;
+
+      --text-main: #0F172A;
+      --text-muted: #64748B;
+      --text-light: #94A3B8;
+
+      --primary: #FF5500;
+      --primary-hover: #E04B00;
+      --primary-light: #FFF2EB;
+
+      --green: #15803D;
+      --green-bg: #ECFDF5;
+      --green-border: #BBF7D0;
+      --green-dark: #166534;
+
+      --orange: #D97706;
+      --orange-bg: #FFFBEB;
+      --orange-border: #FDE68A;
+
+      --red: #DC2626;
+      --red-bg: #FEF2F2;
+      --red-border: #FECACA;
+
+      --blue: #2563EB;
+      --blue-bg: #EFF6FF;
+      --blue-border: #BFDBFE;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-full: 9999px;
+
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg);
+      color: var(--text-main);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background-color: var(--sb-bg);
+      border-right: 1px solid var(--sb-border);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+    .brand-header {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--sb-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--sb-text-bright);
+      font-size: 18px;
+      font-weight: 800;
+      text-decoration: none;
+      letter-spacing: -0.5px;
+    }
+    .brand-bolt {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, #FF5500, #FF8800);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 800;
+    }
+    .portal-role-tag {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 3px 6px;
+      border-radius: 4px;
+      background: rgba(37, 99, 235, 0.2);
+      color: #93C5FD;
+      border: 1px solid rgba(37, 99, 235, 0.4);
+    }
+
+    .sidebar-nav {
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      color: var(--sb-text);
+      font-size: 13.5px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      background: transparent;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+      transition: all 0.15s ease;
+    }
+    .nav-item:hover {
+      color: var(--sb-text-bright);
+      background-color: var(--sb-surface);
+    }
+    .nav-item.active {
+      color: #FF7733;
+      background-color: var(--sb-active-bg);
+      border-color: rgba(255, 85, 0, 0.3);
+      font-weight: 700;
+    }
+    .nav-icon { font-size: 16px; }
+
+    .sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid var(--sb-border);
+      background: rgba(0,0,0,0.2);
+    }
+    .counter-badge-card {
+      background: var(--sb-surface);
+      border: 1px solid var(--sb-border);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .counter-label {
+      font-size: 14px;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: #FF5500;
+    }
+    .status-dot-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #10B981;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #10B981;
+      box-shadow: 0 0 6px #10B981;
+    }
+
+    /* Main Container */
+    .main-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    .top-header {
+      height: 64px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      flex-shrink: 0;
+    }
+    .header-counter-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--primary-light);
+      border: 1.5px solid rgba(255, 85, 0, 0.25);
+      border-radius: var(--radius-full);
+      padding: 6px 16px;
+    }
+    .header-counter-text {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--primary);
+      font-family: var(--font-mono);
+    }
+
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Cards & Grids */
+    .pos-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      border-left: 4px solid var(--primary);
+      box-shadow: var(--shadow-sm);
+    }
+    .kpi-label {
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+    .kpi-value {
+      font-size: 26px;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      margin-top: 6px;
+      color: var(--text-main);
+    }
+    .kpi-subtext {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Verification Terminal Layout */
+    .terminal-grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 1024px) {
+      .terminal-grid { grid-template-columns: 1fr; }
+    }
+
+    .scanner-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+    }
+    .camera-viewport {
+      width: 100%;
+      height: 240px;
+      background: #0F172A;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #staffScannerContainer { width: 100%; height: 100%; }
+
+    /* Inputs & Buttons */
+    .scan-input {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: var(--font-sans);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+    .scan-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(255, 85, 0, 0.12);
+    }
+    .btn-action-primary {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 10px 18px;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s ease;
+    }
+    .btn-action-primary:hover { background: var(--primary-hover); }
+    .btn-action-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-action-secondary {
+      background: var(--surface-subtle);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 9px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-action-secondary:hover { background: #E2E8F0; }
+
+    .btn-action-success {
+      background: var(--green);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 12px 20px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.15s ease;
+    }
+    .btn-action-success:hover { background: var(--green-dark); }
+    .btn-action-success:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Tables */
+    .data-table-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .data-table-toolbar {
+      padding: 14px 18px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      text-align: left;
+    }
+    .data-table th {
+      background: var(--surface-subtle);
+      padding: 10px 16px;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .data-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-main);
+      vertical-align: middle;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background-color: rgba(0,0,0,0.015); }
+
+    /* Status Pills */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .status-badge.cleared, .status-badge.verified {
+      background: var(--green-bg);
+      color: var(--green-dark);
+      border: 1px solid var(--green-border);
+    }
+    .status-badge.pending {
+      background: var(--orange-bg);
+      color: var(--orange);
+      border: 1px solid var(--orange-border);
+    }
+    .status-badge.flagged {
+      background: var(--red-bg);
+      color: var(--red);
+      border: 1px solid var(--red-border);
+    }
+    .status-badge.refunded {
+      background: #F1F5F9;
+      color: #64748B;
+      border: 1px solid #CBD5E1;
+    }
+
+    /* Verification Items list */
+    .item-match-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      margin-bottom: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      transition: all 0.2s ease;
+    }
+    .item-match-row.matched {
+      background: var(--green-bg);
+      border-color: var(--green-border);
+    }
+    .item-match-row.over {
+      background: var(--red-bg);
+      border-color: var(--red-border);
+    }
+
+    /* Toast */
+    #toastContainer {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast-msg {
+      background: #0F172A;
+      color: white;
+      padding: 12px 20px;
+      border-radius: var(--radius-md);
+      font-size: 13.5px;
+      font-weight: 600;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: slideIn 0.2s ease;
+    }
+    .toast-msg.error { background: #DC2626; }
+    @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    .modal-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 520px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalPop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-title { font-size: 17px; font-weight: 800; color: var(--text-main); }
+    .modal-body { padding: 24px; max-height: 75vh; overflow-y: auto; }
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      background: var(--surface-subtle);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Queue Chips */
+    .order-queue-chip {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+    .order-queue-chip:hover { border-color: var(--primary); }
+    .order-queue-chip.active {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Toast notifications -->
+  <div id="toastContainer"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div>
+      <div class="brand-header">
+        <a href="/staff" class="brand-logo">
+          <span class="brand-bolt">⚡</span>
+          <span>ShopFast</span>
+        </a>
+        <span class="portal-role-tag">Staff POS</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-tab="tab-dashboard" onclick="switchStaffTab('tab-dashboard')">
+          <span class="nav-icon">📊</span>
+          <span>Counter Dashboard</span>
+        </button>
+
+        <button class="nav-item" data-tab="tab-verify" onclick="switchStaffTab('tab-verify')">
+          <span class="nav-icon">🔍</span>
+          <span>Cart Verification</span>
+        </button>
+
+        <button class="nav-item" data-tab="tab-transactions" onclick="switchStaffTab('tab-transactions')">
+          <span class="nav-icon">📄</span>
+          <span>My Transactions</span>
+        </button>
+
+        <button class="nav-item" data-tab="tab-settings" onclick="switchStaffTab('tab-settings')">
+          <span class="nav-icon">⚙️</span>
+          <span>Settings</span>
+        </button>
+      </nav>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="counter-badge-card">
+        <div>
+          <div class="counter-label" id="sidebarCounterLabel">Counter --</div>
+          <div style="font-size:11px; color:#64748B;" id="sidebarStaffName">Authenticating...</div>
+        </div>
+        <div class="status-dot-pill">
+          <span class="status-dot"></span>
+          <span id="sidebarWsStatus">Online</span>
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <button type="button" onclick="staffLogout()" class="btn-action-secondary" style="width:100%; justify-content:center; font-size:11.5px; padding:6px; color:#EF4444; border-color:#EF4444;">
+          🚪 Log Out Terminal
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-wrapper">
+    <header class="top-header">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <div class="header-counter-pill">
+          <span style="font-size:16px;">🏪</span>
+          <span class="header-counter-text" id="headerCounterBadge">Counter --</span>
+        </div>
+        <span style="font-size:13px; color:var(--text-muted);" id="headerCounterSubtext">Checkout Register</span>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button class="btn-action-secondary" onclick="refreshCurrentTab()">↻ Refresh</button>
+        <div style="font-size:13px; font-weight:700; color:var(--text-main);" id="topStaffDisplayName">Staff</div>
+      </div>
+    </header>
+
+    <main class="content-area">
+
+      <!-- =====================================================================
+           TAB 1: COUNTER DASHBOARD
+           ===================================================================== -->
+      <section id="tab-dashboard" class="tab-content active">
+        <div style="margin-bottom:20px;">
+          <h1 style="font-size:22px; font-weight:800; letter-spacing:-0.5px;" id="dashCounterTitle">Counter Operations</h1>
+          <p style="font-size:13.5px; color:var(--text-muted); margin-top:2px;">Real-time checkout register status and incoming customer carts awaiting reverification.</p>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card" style="border-left-color: var(--primary);">
+            <div class="kpi-label">Awaiting Verification</div>
+            <div class="kpi-value" style="color:var(--primary);" id="dashWaitingCount">0</div>
+            <div class="kpi-subtext">Carts pending checkout reverification</div>
+          </div>
+
+          <div class="kpi-card" style="border-left-color: var(--green);">
+            <div class="kpi-label">Verified Today</div>
+            <div class="kpi-value" style="color:var(--green);" id="dashVerifiedCount">0</div>
+            <div class="kpi-subtext">Fast-Pass cleared customers</div>
+          </div>
+
+          <div class="kpi-card" style="border-left-color: var(--orange);">
+            <div class="kpi-label">Active Queue Length</div>
+            <div class="kpi-value" style="color:var(--orange);" id="dashQueueCount">0</div>
+            <div class="kpi-subtext">Shoppers in line at this register</div>
+          </div>
+
+          <div class="kpi-card" style="border-left-color: var(--blue);">
+            <div class="kpi-label">Counter Revenue</div>
+            <div class="kpi-value" style="color:var(--blue);" id="dashCounterRevenue">₹0.00</div>
+            <div class="kpi-subtext">Total verified & paid at this register</div>
+          </div>
+        </div>
+
+        <!-- Waiting Carts Section -->
+        <div class="pos-card" style="margin-bottom:24px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <div>
+              <h2 style="font-size:16px; font-weight:800;">Incoming Customer Carts for This Counter</h2>
+              <p style="font-size:12.5px; color:var(--text-muted);">Click any order to load it immediately in the reverification terminal.</p>
+            </div>
+            <button class="btn-action-primary" onclick="loadStaffActiveOrders()">↻ Refresh Queue</button>
+          </div>
+          <div id="dashWaitingOrdersContainer" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:12px;">
+            <div style="font-size:13px; color:var(--text-muted); padding:10px;">Loading waiting customer carts...</div>
+          </div>
+        </div>
+
+        <!-- Recent Completed Transactions -->
+        <div class="data-table-card">
+          <div class="data-table-toolbar">
+            <h3 style="font-size:15px; font-weight:800;">Recent Counter Transactions</h3>
+            <button class="btn-action-secondary" onclick="switchStaffTab('tab-transactions')">View All Ledger →</button>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Order #</th>
+                <th>Customer</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody id="dashRecentTxTableBody">
+              <tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">No recent transactions</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           TAB 2: CART REVERIFICATION TERMINAL
+           ===================================================================== -->
+      <section id="tab-verify" class="tab-content">
+        <!-- Queue Chip Bar -->
+        <div class="pos-card" style="margin-bottom:18px; padding:14px 18px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Waiting Orders at this register:</span>
+            <button type="button" onclick="loadStaffActiveOrders()" style="background:none; border:none; font-size:12px; color:var(--primary); font-weight:700; cursor:pointer;">↻ Refresh</button>
+          </div>
+          <div id="verifyQueueChips" style="display:flex; flex-wrap:wrap; gap:6px;">
+            <span style="font-size:12px; color:var(--text-muted);">No orders currently waiting.</span>
+          </div>
+        </div>
+
+        <div class="terminal-grid">
+          <!-- Left Column: Scanner and Order Input -->
+          <div>
+            <!-- Order Lookup Box -->
+            <div class="pos-card" style="margin-bottom:16px;">
+              <h3 style="font-size:15px; font-weight:800; margin-bottom:10px;">1. Look Up Customer Cart</h3>
+              <form id="lookupForm" onsubmit="handleOrderLookupSubmit(event)" style="display:flex; gap:8px;">
+                <input type="text" id="orderLookupInput" placeholder="Order # (e.g. SF-03-XXXX) or scan QR" class="scan-input" required>
+                <button type="submit" class="btn-action-primary" id="btnLookupOrder">Fetch</button>
+              </form>
+              <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">Customer shows Fast-Pass QR code or Order # on their phone.</div>
+            </div>
+
+            <!-- Camera Scanner Box -->
+            <div class="scanner-box">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <span style="font-size:14px; font-weight:800;">Camera Barcode / QR Reader</span>
+                <button type="button" class="btn-action-secondary" id="btnToggleCamera" onclick="toggleCameraScanner()">Start Camera</button>
+              </div>
+              <div class="camera-viewport">
+                <div id="staffScannerContainer"></div>
+                <div id="cameraPlaceholder" style="font-size:12px; color:#94A3B8; text-align:center; padding:20px;">
+                  Camera inactive.<br>Click "Start Camera" to scan customer Fast-Pass QR or item barcodes.
+                </div>
+              </div>
+            </div>
+
+            <!-- Physical Item Barcode Input -->
+            <div class="pos-card" style="margin-top:16px;">
+              <h3 style="font-size:15px; font-weight:800; margin-bottom:8px;">2. Scan Physical Item</h3>
+              <form id="physicalScanForm" onsubmit="handlePhysicalItemScanSubmit(event)" style="display:flex; gap:8px;">
+                <input type="text" id="physicalBarcodeBarcode" placeholder="Scan or enter item barcode..." class="scan-input" autocomplete="off" disabled>
+                <button type="submit" class="btn-action-primary" id="btnScanItem" disabled>Verify Item</button>
+              </form>
+              <div id="scanFeedbackMsg" style="font-size:12px; margin-top:8px; font-weight:700; display:none;"></div>
+            </div>
+          </div>
+
+          <!-- Right Column: Cart Breakdown & Reverification List -->
+          <div>
+            <div class="pos-card" id="activeOrderCard">
+              <!-- Empty State -->
+              <div id="emptyOrderPlaceholder" style="text-align:center; padding:50px 20px; color:var(--text-muted);">
+                <div style="font-size:48px; margin-bottom:12px;">🛒</div>
+                <h3 style="font-size:17px; font-weight:800; color:var(--text-main);">No Order Loaded</h3>
+                <p style="font-size:13px; margin-top:4px;">Fetch an incoming order from the queue or scan a customer's Fast-Pass QR code to begin verification.</p>
+              </div>
+
+              <!-- Active Order Breakdown -->
+              <div id="activeOrderContent" style="display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px solid var(--border); padding-bottom:14px; margin-bottom:14px;">
+                  <div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <span style="font-size:20px; font-weight:800; font-family:var(--font-mono);" id="orderNumberDisplay">#------</span>
+                      <span class="status-badge pending" id="orderStatusBadge">PENDING</span>
+                    </div>
+                    <div style="font-size:12.5px; color:var(--text-muted); margin-top:3px;">
+                      Customer: <strong id="orderCustomerDisplay">--</strong> • Total: <strong id="orderTotalDisplay" style="color:var(--primary); font-family:var(--font-mono);">₹0.00</strong>
+                    </div>
+                  </div>
+                  <button type="button" class="btn-action-secondary" onclick="resetCurrentVerification()" style="font-size:12px; padding:6px 10px;">↺ Re-Scan All</button>
+                </div>
+
+                <!-- Progress Bar -->
+                <div style="margin-bottom:16px;">
+                  <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700; margin-bottom:6px;">
+                    <span id="progressSummaryText">0 of 0 items matched</span>
+                    <span id="progressPercentText" style="color:var(--primary);">0%</span>
+                  </div>
+                  <div style="height:8px; background:var(--surface-subtle); border-radius:999px; overflow:hidden; border:1px solid var(--border);">
+                    <div id="progressBarFill" style="height:100%; width:0%; background:var(--green); transition:width 0.3s ease;"></div>
+                  </div>
+                </div>
+
+                <!-- Reverification Item Checklist -->
+                <div style="font-size:13px; font-weight:800; margin-bottom:8px; color:var(--text-muted); text-transform:uppercase;">Basket Items Checklist:</div>
+                <div id="verificationItemsList" style="max-height:300px; overflow-y:auto; margin-bottom:20px;">
+                  <!-- Populated via JS -->
+                </div>
+
+                <!-- Finalize Action -->
+                <button type="button" class="btn-action-success" id="btnCompleteVerification" onclick="finalizeOrderVerification()" disabled>
+                  <span>✓ Complete Clearance & Release Customer</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           TAB 3: MY TRANSACTIONS
+           ===================================================================== -->
+      <section id="tab-transactions" class="tab-content">
+        <div style="margin-bottom:16px;">
+          <h1 style="font-size:22px; font-weight:800;" id="txHeaderTitle">Counter Transactions</h1>
+          <p style="font-size:13.5px; color:var(--text-muted);">Authoritative audit ledger of checkouts processed at this register.</p>
+        </div>
+
+        <div class="data-table-card">
+          <div class="data-table-toolbar">
+            <div style="display:flex; gap:10px; align-items:center; flex:1; flex-wrap:wrap;">
+              <input type="text" id="staffTxSearchInput" placeholder="Search Order # or Customer..." class="scan-input" style="max-width:240px;" oninput="onStaffTxSearchChange(this.value)">
+              <select id="staffTxFilterStatus" class="scan-input" style="max-width:160px;" onchange="loadStaffTransactions()">
+                <option value="">All Statuses</option>
+                <option value="VERIFIED">Cleared / Verified</option>
+                <option value="PENDING">Pending Verification</option>
+                <option value="FLAGGED">Flagged</option>
+                <option value="REFUNDED">Refunded</option>
+              </select>
+            </div>
+            <button class="btn-action-secondary" onclick="loadStaffTransactions()">↻ Reload Ledger</button>
+          </div>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Order #</th>
+                <th>Customer</th>
+                <th>Items</th>
+                <th>Amount (₹)</th>
+                <th>Payment</th>
+                <th>Verification</th>
+                <th>Duration</th>
+                <th>Date & Time</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="staffTxTableBody">
+              <tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:30px;">Loading transactions...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           TAB 4: SETTINGS
+           ===================================================================== -->
+      <section id="tab-settings" class="tab-content">
+        <div style="max-width:600px;">
+          <h1 style="font-size:22px; font-weight:800; margin-bottom:16px;">Staff Terminal Settings</h1>
+
+          <div class="pos-card" style="margin-bottom:20px;">
+            <h3 style="font-size:16px; font-weight:800; margin-bottom:14px;">Operator Account</h3>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; font-size:13.5px;">
+              <div>
+                <span style="color:var(--text-muted); font-size:12px;">Cashier Name</span>
+                <div style="font-weight:700; margin-top:2px;" id="settingsStaffName">--</div>
+              </div>
+              <div>
+                <span style="color:var(--text-muted); font-size:12px;">Staff Username</span>
+                <div style="font-weight:700; margin-top:2px;" id="settingsStaffUsername">--</div>
+              </div>
+              <div>
+                <span style="color:var(--text-muted); font-size:12px;">Assigned Checkout Register</span>
+                <div style="font-weight:800; color:var(--primary); font-family:var(--font-mono); margin-top:2px;" id="settingsStaffCounter">Counter --</div>
+              </div>
+              <div>
+                <span style="color:var(--text-muted); font-size:12px;">System Role</span>
+                <div style="font-weight:700; margin-top:2px;">Counter POS Cashier</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Change PIN Card -->
+          <div class="pos-card" style="margin-bottom:20px;">
+            <h3 style="font-size:16px; font-weight:800; margin-bottom:12px;">Change Security PIN</h3>
+            <form onsubmit="handleStaffChangePinSubmit(event)">
+              <div style="margin-bottom:12px;">
+                <label style="font-size:12px; font-weight:700; color:var(--text-muted);">Current PIN</label>
+                <input type="password" id="staffCurrentPin" class="scan-input" placeholder="Enter current 4-digit PIN" required maxlength="8">
+              </div>
+              <div style="margin-bottom:16px;">
+                <label style="font-size:12px; font-weight:700; color:var(--text-muted);">New PIN (4–8 digits)</label>
+                <input type="password" id="staffNewPin" class="scan-input" placeholder="Enter new PIN" required maxlength="8">
+              </div>
+              <button type="submit" class="btn-action-primary" id="btnChangePin">Update Security PIN</button>
+            </form>
+          </div>
+
+          <!-- Logout -->
+          <div class="pos-card">
+            <h3 style="font-size:16px; font-weight:800; margin-bottom:8px; color:#EF4444;">Terminate Cashier Session</h3>
+            <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">Log out of Counter POS station. Session token will be permanently revoked.</p>
+            <button type="button" class="btn-action-secondary" onclick="staffLogout()" style="color:#EF4444; border-color:#EF4444; font-weight:700;">
+              🚪 Exit Station
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 1: ORDER DETAILS MODAL
+       ========================================================================= -->
+  <div class="modal-overlay" id="staffOrderDetailsModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalOrderNumber">Order Details</h3>
+        <button type="button" onclick="closeOrderDetailsModal()" style="background:none; border:none; font-size:20px; cursor:pointer;">✕</button>
+      </div>
+      <div class="modal-body" id="modalOrderBody">
+        <!-- Content via JS -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-action-secondary" onclick="closeOrderDetailsModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 2: STAFF LOGIN MODAL
+       ========================================================================= -->
+  <div class="modal-overlay" id="staffLoginModal" style="display:none; background:rgba(7, 13, 30, 0.95);">
+    <div class="modal-card" style="max-width:420px; border:1px solid #1B284A; background:#0E172F; color:white;">
+      <div class="modal-header" style="border-bottom-color:#1B284A; justify-content:center;">
+        <div style="text-align:center;">
+          <div style="font-size:32px; margin-bottom:6px;">⚡</div>
+          <h2 style="font-size:18px; font-weight:800; color:white;">Staff POS Login</h2>
+          <p style="font-size:12px; color:#94A3B8; margin-top:2px;">Sign in to operate your assigned counter register</p>
+        </div>
+      </div>
+      <form onsubmit="handleStaffLoginSubmit(event)">
+        <div class="modal-body">
+          <div id="loginErrorMsg" style="display:none; background:rgba(220, 38, 38, 0.2); border:1px solid #DC2626; color:#FCA5A5; padding:10px; border-radius:6px; font-size:12.5px; margin-bottom:14px;"></div>
+          
+          <div style="margin-bottom:14px;">
+            <label style="display:block; font-size:12px; font-weight:700; color:#94A3B8; margin-bottom:4px;">Staff Username</label>
+            <input type="text" id="loginUsernameInput" class="scan-input" placeholder="e.g. staff01, staff02, staff03..." style="background:#1B284A; border-color:#2E3F6E; color:white;" required>
+          </div>
+
+          <div style="margin-bottom:14px;">
+            <label style="display:block; font-size:12px; font-weight:700; color:#94A3B8; margin-bottom:4px;">Security PIN</label>
+            <input type="password" id="loginPinInput" class="scan-input" placeholder="4-digit PIN" maxlength="8" style="background:#1B284A; border-color:#2E3F6E; color:white;" required>
+          </div>
+          
+          <div style="font-size:11.5px; color:#64748B;">
+            Demo Staff: <code>staff01</code> / <code>staff02</code> / <code>staff03</code> / <code>staff04</code> / <code>staff07</code> (PIN: 1234)
+          </div>
+        </div>
+        <div class="modal-footer" style="background:#070D1E; border-top-color:#1B284A;">
+          <button type="submit" class="btn-action-primary" id="btnLoginSubmit" style="width:100%; padding:12px;">Sign In to Register →</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================================
+       JAVASCRIPT FOR STAFF COUNTER POS PORTAL
+       ========================================================================= */
+    const API_BASE = '';
+    let authToken = localStorage.getItem('SHOPFAST_TOKEN') || null;
+
+    const state = {
+      user: null,
+      assignedCounter: null,
+      activeOrder: null,
+      scannerActive: false,
+      scannerInstance: null,
+      searchTimeout: null,
+      ws: null,
+    };
+
+    // Synthesized Audio Feedback
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playBeep(freq, duration, type = 'sine') {
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (_) {}
+    }
+    function playSuccessChime() {
+      playBeep(523.25, 0.12);
+      setTimeout(() => playBeep(659.25, 0.12), 120);
+      setTimeout(() => playBeep(783.99, 0.25), 240);
+    }
+    function playMatchBeep() { playBeep(880, 0.15); }
+    function playErrorBuzzer() {
+      playBeep(220, 0.25, 'sawtooth');
+      setTimeout(() => playBeep(180, 0.35, 'sawtooth'), 260);
+    }
+
+    // Toast
+    function showToast(msg, isError = false) {
+      const container = document.getElementById('toastContainer');
+      const el = document.createElement('div');
+      el.className = 'toast-msg' + (isError ? ' error' : '');
+      el.textContent = msg;
+      container.appendChild(el);
+      setTimeout(() => { el.remove(); }, 4000);
+    }
+
+    // API Request Wrapper
+    async function apiRequest(path, options = {}) {
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+      };
+      const res = await fetch(API_BASE + path, { headers, ...options });
+      if (!res.ok) {
+        let errDetail = 'Request failed (' + res.status + ')';
+        try {
+          const json = await res.json();
+          if (json.detail) errDetail = json.detail;
+        } catch (_) {}
+        if (res.status === 401) {
+          showStaffLoginModal('Session expired. Please sign in again.');
+        }
+        const err = new Error(errDetail);
+        err.status = res.status;
+        throw err;
+      }
+      return res.status === 204 ? null : await res.json();
+    }
+
+    // Tab Navigation
+    function switchStaffTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+      const targetTab = document.getElementById(tabId);
+      if (targetTab) targetTab.classList.add('active');
+
+      const btn = document.querySelector(`.nav-item[data-tab="${tabId}"]`);
+      if (btn) btn.classList.add('active');
+
+      if (tabId === 'tab-dashboard') loadStaffDashboard();
+      if (tabId === 'tab-verify') loadStaffActiveOrders();
+      if (tabId === 'tab-transactions') loadStaffTransactions();
+    }
+
+    function refreshCurrentTab() {
+      const activeTab = document.querySelector('.tab-content.active');
+      if (activeTab) switchStaffTab(activeTab.id);
+    }
+
+    // Init Staff Terminal
+    async function initStaffTerminal() {
+      if (!authToken) {
+        showStaffLoginModal();
+        return;
+      }
+
+      try {
+        const user = await apiRequest('/api/v1/auth/me');
+        if (user.role !== 'admin' && user.role !== 'staff') {
+          if (user.role === 'store_admin') {
+            window.location.href = '/admin';
+            return;
+          }
+          throw new Error('Access denied: Checkout counter staff account required.');
+        }
+
+        if (!user.counter_number) {
+          throw new Error('Access denied: No counter assigned to this staff account.');
+        }
+
+        state.user = user;
+        state.assignedCounter = user.counter_number;
+
+        // Populate header and sidebar
+        document.getElementById('headerCounterBadge').textContent = `Counter ${user.counter_number}`;
+        document.getElementById('sidebarCounterLabel').textContent = `Counter ${user.counter_number}`;
+        document.getElementById('sidebarStaffName').textContent = user.display_name || user.username;
+        document.getElementById('topStaffDisplayName').textContent = user.display_name || user.username;
+        document.getElementById('dashCounterTitle').textContent = `Counter ${user.counter_number} Operations`;
+        document.getElementById('settingsStaffName').textContent = user.display_name;
+        document.getElementById('settingsStaffUsername').textContent = user.username;
+        document.getElementById('settingsStaffCounter').textContent = `Counter ${user.counter_number}`;
+
+        // Connect live WebSocket
+        connectWebSocket();
+
+        // Load initial dashboard
+        loadStaffDashboard();
+        loadStaffActiveOrders();
+      } catch (err) {
+        showToast(err.message, true);
+        showStaffLoginModal(err.message);
+      }
+    }
+
+    // Live WebSocket
+    function connectWebSocket() {
+      if (state.ws) {
+        try { state.ws.close(); } catch (_) {}
+      }
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const tokenQuery = authToken ? `token=${encodeURIComponent(authToken)}` : '';
+      const wsUrl = `${protocol}//${location.host}/api/v1/ws/counter/${encodeURIComponent(state.assignedCounter)}?${tokenQuery}`;
+      try {
+        state.ws = new WebSocket(wsUrl);
+        state.ws.onopen = () => {
+          document.getElementById('sidebarWsStatus').textContent = 'Online';
+        };
+        state.ws.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data);
+            handleWsMessage(msg);
+          } catch (_) {}
+        };
+        state.ws.onclose = () => {
+          document.getElementById('sidebarWsStatus').textContent = 'Connecting...';
+          setTimeout(connectWebSocket, 4000);
+        };
+      } catch (_) {}
+    }
+
+    function handleWsMessage(msg) {
+      if (!msg) return;
+      if (msg.event === 'NEW_ORDER' || msg.event === 'NEW_ORDER_ASSIGNED' || msg.event === 'QUEUE_UPDATED') {
+        loadStaffDashboard();
+        loadStaffActiveOrders();
+        showToast(`⚡ New order ${msg.data?.order_number ? '#' + msg.data.order_number : ''} waiting for verification`);
+      } else if (msg.event === 'ORDER_CLEARED_RELEASED' || msg.event === 'ORDER_VERIFIED') {
+        loadStaffDashboard();
+        loadStaffActiveOrders();
+        if (document.getElementById('tab-transactions') && document.getElementById('tab-transactions').classList.contains('active')) {
+          loadStaffTransactions();
+        }
+      } else if (msg.event === 'COUNTER_STATUS_CHANGED' && msg.data?.counter_number === state.assignedCounter) {
+        state.isCounterOpen = !!msg.data.is_active;
+        document.getElementById('headerCounterStatus').className = `status-pill ${state.isCounterOpen ? 'open' : 'closed'}`;
+        document.getElementById('headerCounterStatus').textContent = state.isCounterOpen ? '● Terminal Open' : '○ Terminal Closed';
+        showToast(`Store Admin set Counter ${state.assignedCounter} to ${state.isCounterOpen ? 'OPEN' : 'CLOSED'}`);
+      }
+    }
+
+    // Load Dashboard Data
+    async function loadStaffDashboard() {
+      try {
+        const data = await apiRequest('/api/v1/staff/dashboard');
+        document.getElementById('dashWaitingCount').textContent = data.pending_verifications_count;
+        document.getElementById('dashVerifiedCount').textContent = data.verified_today_count;
+        document.getElementById('dashQueueCount').textContent = data.active_queue_length;
+        document.getElementById('dashCounterRevenue').textContent = `₹${data.counter_revenue.toFixed(2)}`;
+
+        // Render recent transactions table
+        const tbody = document.getElementById('dashRecentTxTableBody');
+        if (!data.recent_transactions || data.recent_transactions.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">No recent transactions for this counter</td></tr>';
+        } else {
+          tbody.innerHTML = data.recent_transactions.map(t => `
+            <tr>
+              <td><strong style="font-family:var(--font-mono);">#${t.order_number}</strong></td>
+              <td>${t.customer_identifier || 'Walk-in'}</td>
+              <td>${t.items_count} items</td>
+              <td><strong style="font-family:var(--font-mono);">₹${t.total_amount.toFixed(2)}</strong></td>
+              <td><span class="status-badge ${t.verification_status.toLowerCase()}">${t.verification_status}</span></td>
+              <td style="font-size:12px; color:var(--text-muted);">${new Date(t.created_at).toLocaleTimeString()}</td>
+            </tr>
+          `).join('');
+        }
+      } catch (err) {
+        console.warn('Dashboard load error:', err);
+      }
+    }
+
+    // Load Active Orders Queue
+    async function loadStaffActiveOrders() {
+      try {
+        const orders = await apiRequest('/api/v1/staff/orders/active');
+        renderWaitingOrders(orders);
+      } catch (err) {
+        console.warn('Active orders load error:', err);
+      }
+    }
+
+    function renderWaitingOrders(orders) {
+      // 1. In Dashboard Tab
+      const dashContainer = document.getElementById('dashWaitingOrdersContainer');
+      if (dashContainer) {
+        if (!orders || orders.length === 0) {
+          dashContainer.innerHTML = '<div style="font-size:13px; color:var(--text-muted); padding:10px;">No customer carts currently awaiting verification at this counter.</div>';
+        } else {
+          dashContainer.innerHTML = orders.map(o => `
+            <div style="background:var(--surface-subtle); border:1px solid var(--border); border-radius:var(--radius-md); padding:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <span style="font-family:var(--font-mono); font-weight:800; color:var(--primary);">#${o.order_number}</span>
+                <span class="status-badge pending">AWAITING SCAN</span>
+              </div>
+              <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:10px;">
+                Customer: <strong>${o.customer_identifier}</strong><br>
+                ${o.items_expected_count} items • Total: <strong>₹${o.total_amount.toFixed(2)}</strong>
+              </div>
+              <button class="btn-action-primary" style="width:100%; font-size:12.5px; padding:7px;" onclick="loadAndVerifyOrder('${o.order_number}')">
+                Verify Order Now →
+              </button>
+            </div>
+          `).join('');
+        }
+      }
+
+      // 2. In Verify Tab Chips
+      const chipsContainer = document.getElementById('verifyQueueChips');
+      if (chipsContainer) {
+        if (!orders || orders.length === 0) {
+          chipsContainer.innerHTML = '<span style="font-size:12px; color:var(--text-muted);">No orders waiting at this register.</span>';
+        } else {
+          chipsContainer.innerHTML = orders.map(o => `
+            <button class="order-queue-chip ${state.activeOrder && state.activeOrder.order_number === o.order_number ? 'active' : ''}" onclick="loadAndVerifyOrder('${o.order_number}')">
+              <span>⚡ #${o.order_number}</span>
+              <span style="font-size:11px; opacity:0.75;">(${o.items_expected_count} items • ₹${o.total_amount.toFixed(2)})</span>
+            </button>
+          `).join('');
+        }
+      }
+    }
+
+    // Lookup Order
+    async function handleOrderLookupSubmit(e) {
+      e.preventDefault();
+      const val = document.getElementById('orderLookupInput').value.trim();
+      if (!val) return;
+      await loadAndVerifyOrder(val);
+    }
+
+    async function loadAndVerifyOrder(orderNum) {
+      const btn = document.getElementById('btnLookupOrder');
+      if (btn) btn.disabled = true;
+      try {
+        const order = await apiRequest('/api/v1/staff/verify/lookup', {
+          method: 'POST',
+          body: JSON.stringify({ token_or_order_number: orderNum, counter_number: state.assignedCounter })
+        });
+        state.activeOrder = order;
+        renderActiveOrder(order);
+        switchStaffTab('tab-verify');
+        showToast(`Loaded Order #${order.order_number}`);
+      } catch (err) {
+        playErrorBuzzer();
+        showToast(err.message, true);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    function renderActiveOrder(order) {
+      document.getElementById('emptyOrderPlaceholder').style.display = 'none';
+      document.getElementById('activeOrderContent').style.display = 'block';
+
+      document.getElementById('orderNumberDisplay').textContent = '#' + order.order_number;
+      document.getElementById('orderStatusBadge').textContent = order.verification_status;
+      document.getElementById('orderCustomerDisplay').textContent = order.customer_identifier;
+      document.getElementById('orderTotalDisplay').textContent = `₹${order.total_amount.toFixed(2)}`;
+
+      // Enable physical scan input
+      document.getElementById('physicalBarcodeBarcode').disabled = false;
+      document.getElementById('btnScanItem').disabled = false;
+      document.getElementById('physicalBarcodeBarcode').focus();
+
+      // Progress bar
+      const total = order.items_expected_count;
+      const verified = order.items_verified_count;
+      const pct = total > 0 ? Math.round((verified / total) * 100) : 0;
+      document.getElementById('progressSummaryText').textContent = `${verified} of ${total} items verified`;
+      document.getElementById('progressPercentText').textContent = `${pct}%`;
+      document.getElementById('progressBarFill').style.width = `${pct}%`;
+
+      // Enable/disable complete button
+      const completeBtn = document.getElementById('btnCompleteVerification');
+      completeBtn.disabled = !order.is_all_matched;
+
+      // Render items checklist
+      const listContainer = document.getElementById('verificationItemsList');
+      listContainer.innerHTML = order.items.map(item => `
+        <div class="item-match-row ${item.is_matched ? 'matched' : ''}">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:22px;">${item.icon || '📦'}</span>
+            <div>
+              <div style="font-weight:700; font-size:13.5px;">${item.product_name}</div>
+              <div style="font-size:11.5px; color:var(--text-muted); font-family:var(--font-mono);">Barcode: ${item.product_barcode} • ₹${item.unit_price}</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="text-align:right;">
+              <span style="font-size:14px; font-weight:800; font-family:var(--font-mono);">${item.verified_quantity} / ${item.expected_quantity}</span>
+              <div style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">verified</div>
+            </div>
+            <span>${item.is_matched ? '✅' : '⏳'}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Physical Item Scan
+    async function handlePhysicalItemScanSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById('physicalBarcodeBarcode');
+      const barcode = input.value.trim();
+      if (!barcode || !state.activeOrder) return;
+
+      const feedback = document.getElementById('scanFeedbackMsg');
+      try {
+        const res = await apiRequest('/api/v1/staff/verify/scan', {
+          method: 'POST',
+          body: JSON.stringify({
+            order_number: state.activeOrder.order_number,
+            scanned_barcode: barcode,
+            counter_number: state.assignedCounter
+          })
+        });
+
+        state.activeOrder = res.order;
+        renderActiveOrder(res.order);
+        input.value = '';
+        input.focus();
+
+        if (res.status === 'MATCHED' || res.status === 'ALL_CLEARED') {
+          playMatchBeep();
+          feedback.style.color = '#15803D';
+          feedback.textContent = `✓ MATCHED: ${res.product_name} (${res.scanned_qty}/${res.expected_qty})`;
+          feedback.style.display = 'block';
+          if (res.is_all_matched) playSuccessChime();
+        } else {
+          playErrorBuzzer();
+          feedback.style.color = '#DC2626';
+          feedback.textContent = `⚠ ${res.message}`;
+          feedback.style.display = 'block';
+        }
+      } catch (err) {
+        playErrorBuzzer();
+        feedback.style.color = '#DC2626';
+        feedback.textContent = err.message;
+        feedback.style.display = 'block';
+      }
+    }
+
+    // Complete Verification
+    async function finalizeOrderVerification() {
+      if (!state.activeOrder) return;
+      const btn = document.getElementById('btnCompleteVerification');
+      btn.disabled = true;
+      btn.textContent = 'Clearing Customer...';
+
+      try {
+        const completed = await apiRequest('/api/v1/staff/verify/complete', {
+          method: 'POST',
+          body: JSON.stringify({
+            order_number: state.activeOrder.order_number,
+            counter_number: state.assignedCounter,
+            duration_seconds: 15
+          })
+        });
+
+        // Confetti celebration
+        try { confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } }); } catch (_) {}
+        playSuccessChime();
+        showToast(`Customer cleared! Order #${completed.order_number} verified.`);
+
+        // Reset verification UI
+        state.activeOrder = null;
+        document.getElementById('activeOrderContent').style.display = 'none';
+        document.getElementById('emptyOrderPlaceholder').style.display = 'block';
+        document.getElementById('orderLookupInput').value = '';
+        document.getElementById('physicalBarcodeBarcode').value = '';
+        document.getElementById('physicalBarcodeBarcode').disabled = true;
+        document.getElementById('btnScanItem').disabled = true;
+        document.getElementById('scanFeedbackMsg').style.display = 'none';
+
+        // Refresh lists
+        loadStaffActiveOrders();
+        loadStaffDashboard();
+      } catch (err) {
+        playErrorBuzzer();
+        showToast(err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '✓ Complete Clearance & Release Customer';
+      }
+    }
+
+    // Reset current order
+    async function resetCurrentVerification() {
+      if (!state.activeOrder) return;
+      if (!confirm(`Reset verification for Order #${state.activeOrder.order_number}?`)) return;
+      try {
+        const resetOrder = await apiRequest(`/api/v1/staff/verify/reset?order_number=${encodeURIComponent(state.activeOrder.order_number)}&counter_number=${encodeURIComponent(state.assignedCounter)}`, {
+          method: 'POST'
+        });
+        state.activeOrder = resetOrder;
+        renderActiveOrder(resetOrder);
+        showToast('Verification progress reset.');
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    // Camera Scanner
+    function toggleCameraScanner() {
+      if (state.scannerActive) {
+        stopCameraScanner();
+      } else {
+        startCameraScanner();
+      }
+    }
+
+    function startCameraScanner() {
+      if (!window.Html5Qrcode) {
+        showToast('Scanning library not ready', true);
+        return;
+      }
+      const container = document.getElementById('staffScannerContainer');
+      document.getElementById('cameraPlaceholder').style.display = 'none';
+      const scanner = new Html5Qrcode('staffScannerContainer');
+      state.scannerInstance = scanner;
+
+      scanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 220, height: 220 } },
+        (decodedText) => {
+          onBarcodeScannedFromCamera(decodedText);
+        },
+        () => {}
+      ).then(() => {
+        state.scannerActive = true;
+        document.getElementById('btnToggleCamera').textContent = 'Stop Camera';
+      }).catch(err => {
+        showToast('Camera error: ' + err, true);
+        document.getElementById('cameraPlaceholder').style.display = 'block';
+      });
+    }
+
+    function stopCameraScanner() {
+      if (state.scannerInstance) {
+        state.scannerInstance.stop().then(() => {
+          state.scannerActive = false;
+          document.getElementById('btnToggleCamera').textContent = 'Start Camera';
+          document.getElementById('cameraPlaceholder').style.display = 'block';
+          state.scannerInstance = null;
+        }).catch(() => {});
+      }
+    }
+
+    function onBarcodeScannedFromCamera(code) {
+      code = code.trim();
+      // If we don't have an active order loaded, attempt lookup
+      if (!state.activeOrder) {
+        loadAndVerifyOrder(code);
+      } else {
+        // Feed into physical item input
+        document.getElementById('physicalBarcodeBarcode').value = code;
+        handlePhysicalItemScanSubmit(new Event('submit'));
+      }
+    }
+
+    // Load Transactions
+    async function loadStaffTransactions() {
+      const tbody = document.getElementById('staffTxTableBody');
+      const search = document.getElementById('staffTxSearchInput').value.trim();
+      const statusFilter = document.getElementById('staffTxFilterStatus').value;
+
+      let url = `/api/v1/staff/transactions?limit=50`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+      if (statusFilter) url += `&status=${encodeURIComponent(statusFilter)}`;
+
+      try {
+        const txs = await apiRequest(url);
+        if (!txs || txs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:30px;">No transactions found for this counter.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = txs.map(t => `
+          <tr>
+            <td><strong style="font-family:var(--font-mono);">#${t.order_number}</strong></td>
+            <td>${t.customer_identifier || 'Shopper'}</td>
+            <td>${t.items_count} items</td>
+            <td><strong style="font-family:var(--font-mono); color:var(--primary);">₹${t.total_amount.toFixed(2)}</strong></td>
+            <td><span style="font-size:12px; font-weight:700;">${t.payment_method || 'UPI'}</span></td>
+            <td><span class="status-badge ${t.verification_status.toLowerCase()}">${t.verification_status}</span></td>
+            <td style="font-size:12px; font-family:var(--font-mono);">${t.verification_duration_seconds ? t.verification_duration_seconds + 's' : '--'}</td>
+            <td style="font-size:12px; color:var(--text-muted);">${new Date(t.created_at).toLocaleString()}</td>
+            <td style="text-align:right;">
+              <button class="btn-action-secondary" style="font-size:11.5px; padding:4px 8px;" onclick="viewTxDetails('${t.order_number}')">View Items</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#DC2626; padding:20px;">Failed to load transactions: ${err.message}</td></tr>`;
+      }
+    }
+
+    function onStaffTxSearchChange() {
+      clearTimeout(state.searchTimeout);
+      state.searchTimeout = setTimeout(loadStaffTransactions, 300);
+    }
+
+    async function viewTxDetails(orderNumber) {
+      try {
+        const order = await apiRequest(`/api/v1/orders/${orderNumber}`);
+        document.getElementById('modalOrderNumber').textContent = `Order #${order.order_number}`;
+        const body = document.getElementById('modalOrderBody');
+        body.innerHTML = `
+          <div style="margin-bottom:14px; font-size:13px;">
+            <div>Customer: <strong>${order.customer_identifier}</strong></div>
+            <div>Counter: <strong>Counter ${order.assigned_counter_number}</strong></div>
+            <div>Total: <strong style="color:var(--primary);">₹${order.total_amount.toFixed(2)}</strong></div>
+            <div>Status: <span class="status-badge ${order.verification_status ? order.verification_status.toLowerCase() : 'pending'}">${order.verification_status || 'PENDING'}</span></div>
+          </div>
+          <h4 style="font-size:13px; font-weight:800; margin-bottom:8px;">Items Purchased:</h4>
+          <div>
+            ${order.items.map(it => `
+              <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px;">
+                <div>
+                  <div style="font-weight:700;">${it.product_name}</div>
+                  <div style="font-size:11px; color:var(--text-muted);">Barcode: ${it.product_barcode}</div>
+                </div>
+                <div style="text-align:right;">
+                  <div>${it.quantity} × ₹${it.unit_price}</div>
+                  <div style="font-weight:800;">₹${it.total_price.toFixed(2)}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        document.getElementById('staffOrderDetailsModal').style.display = 'flex';
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    function closeOrderDetailsModal() {
+      document.getElementById('staffOrderDetailsModal').style.display = 'none';
+    }
+
+    // Change PIN
+    async function handleStaffChangePinSubmit(e) {
+      e.preventDefault();
+      const current_pin = document.getElementById('staffCurrentPin').value.trim();
+      const new_pin = document.getElementById('staffNewPin').value.trim();
+      const btn = document.getElementById('btnChangePin');
+
+      btn.disabled = true;
+      try {
+        await apiRequest('/api/v1/auth/change-pin', {
+          method: 'POST',
+          body: JSON.stringify({ current_pin, new_pin })
+        });
+        showToast('PIN successfully updated!');
+        document.getElementById('staffCurrentPin').value = '';
+        document.getElementById('staffNewPin').value = '';
+      } catch (err) {
+        showToast(err.message, true);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // Login & Logout
+    function showStaffLoginModal(msg = '') {
+      const modal = document.getElementById('staffLoginModal');
+      const err = document.getElementById('loginErrorMsg');
+      if (msg) {
+        err.textContent = msg;
+        err.style.display = 'block';
+      } else {
+        err.style.display = 'none';
+      }
+      modal.style.display = 'flex';
+    }
+
+    async function handleStaffLoginSubmit(e) {
+      e.preventDefault();
+      const username = document.getElementById('loginUsernameInput').value.trim();
+      const pin = document.getElementById('loginPinInput').value.trim();
+      const btn = document.getElementById('btnLoginSubmit');
+      const err = document.getElementById('loginErrorMsg');
+
+      btn.disabled = true;
+      btn.textContent = 'Verifying...';
+      err.style.display = 'none';
+
+      try {
+        const data = await apiRequest('/api/v1/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ username, pin })
+        });
+
+        if (data.role !== 'admin' && data.role !== 'staff') {
+          if (data.role === 'store_admin') {
+            window.location.href = '/admin';
+            return;
+          }
+          throw new Error('Access denied: Checkout counter staff account required.');
+        }
+
+        authToken = data.token;
+        localStorage.setItem('SHOPFAST_TOKEN', authToken);
+        document.getElementById('staffLoginModal').style.display = 'none';
+        initStaffTerminal();
+        showToast(`Authenticated as ${data.display_name} at Counter ${data.counter_number}`);
+      } catch (loginErr) {
+        err.textContent = loginErr.message;
+        err.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Sign In to Register →';
+      }
+    }
+
+    async function staffLogout() {
+      try {
+        if (authToken) {
+          await apiRequest('/api/v1/auth/logout', { method: 'POST' });
+        }
+      } catch (_) {}
+      localStorage.removeItem('SHOPFAST_TOKEN');
+      authToken = null;
+      if (state.ws) {
+        try { state.ws.close(); } catch (_) {}
+      }
+      showStaffLoginModal('Logged out from station.');
+    }
+
+    // Auto-init on page load
+    document.addEventListener('DOMContentLoaded', initStaffTerminal);
+  </script>
+</body>
+</html>

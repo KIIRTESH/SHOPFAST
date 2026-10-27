@@ -83,7 +83,12 @@ class AdminAnalyticsResponse(BaseModel):
     avg_verification_seconds: float
     flagged_discrepancies_count: int
     active_queue_length: int
+    open_counters_count: int = 0
+    closed_counters_count: int = 0
+    active_staff_count: int = 0
+    pending_verifications_count: int = 0
     counters_overview: List[Dict[str, Any]]
+    recent_activity: Optional[List["AdminTransactionSummary"]] = None
 
 
 class AdminTransactionSummary(BaseModel):
@@ -110,3 +115,65 @@ class AdminProductUpdateRequest(BaseModel):
     category: Optional[str] = None
     icon: Optional[str] = None
     is_active: Optional[bool] = None
+
+
+class AdminProductCreateRequest(BaseModel):
+    barcode: str
+    name: str
+    price: float = Field(..., ge=0.0)
+    stock_qty: int = Field(default=100, ge=0)
+    category: Optional[str] = "General"
+    icon: Optional[str] = "📦"
+    description: Optional[str] = ""
+    is_active: bool = True
+
+
+class StaffAccountRead(BaseModel):
+    id: int
+    username: str
+    display_name: str
+    role: str
+    counter_number: Optional[str] = None
+    is_active: bool
+    is_online: bool = False
+    last_active: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StaffCreateRequest(BaseModel):
+    username: str
+    display_name: str
+    pin: str
+    counter_number: str
+    role: Optional[str] = "staff"
+
+
+class StaffUpdateRequest(BaseModel):
+    display_name: Optional[str] = None
+    counter_number: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class StaffResetPinRequest(BaseModel):
+    new_pin: str
+
+
+class CounterStatusUpdateRequest(BaseModel):
+    is_active: bool
+
+
+class CounterMonitorDetail(BaseModel):
+    id: int
+    counter_number: str
+    name: str
+    is_active: bool
+    is_express: bool
+    avg_scan_speed_factor: float
+    assigned_staff: Optional[StaffAccountRead] = None
+    active_queue_length: int = 0
+    waiting_orders_count: int = 0
+    verified_today_count: int = 0
+    counter_revenue: float = 0.0
+

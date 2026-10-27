@@ -106,9 +106,9 @@ async def require_admin(
     authorization: Optional[str] = Header(default=None),
     db: AsyncSession = Depends(get_db),
 ):
-    """Dependency: ensures the authenticated user has an admin or store_admin role."""
+    """Dependency: ensures the authenticated user has an admin, staff, or store_admin role."""
     user = await get_current_user(authorization=authorization, db=db)
-    if user.role not in ("admin", "store_admin"):
+    if user.role not in ("admin", "store_admin", "staff"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required.",
@@ -125,6 +125,35 @@ def is_store_admin(user) -> bool:
     if not user or not getattr(user, "is_active", False):
         return False
     return getattr(user, "role", None) == "store_admin"
+
+
+async def require_store_admin(
+    authorization: Optional[str] = Header(default=None),
+    db: AsyncSession = Depends(get_db),
+):
+    """Dependency: ensures the authenticated user has store-wide administrator privileges (role == 'store_admin')."""
+    user = await get_current_user(authorization=authorization, db=db)
+    if not is_store_admin(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Store Administrator access required.",
+        )
+    return user
+
+
+async def require_staff(
+    authorization: Optional[str] = Header(default=None),
+    db: AsyncSession = Depends(get_db),
+):
+    """Dependency: ensures the authenticated user is an authorized counter staff member or store admin."""
+    user = await get_current_user(authorization=authorization, db=db)
+    if user.role not in ("admin", "staff", "store_admin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Staff access required.",
+        )
+    return user
+
 
 
 async def validate_counter_access(

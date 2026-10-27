@@ -8,7 +8,7 @@ from sqlalchemy import select, delete
 from app.db.session import get_db
 from app.models.user import User
 from app.models.session import UserSession
-from app.schemas.auth import RegisterRequest, LoginRequest, AuthResponse, UserProfile
+from app.schemas.auth import RegisterRequest, LoginRequest, AuthResponse, UserProfile, ChangePinRequest
 from app.core.auth import (
     create_pin_hash,
     verify_pin,
@@ -16,6 +16,7 @@ from app.core.auth import (
     session_expires_at,
     get_current_user,
 )
+
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -181,3 +182,24 @@ async def get_current_user_profile(
         role=current_user.role,
         counter_number=current_user.counter_number,
     )
+
+
+@router.post("/change-pin")
+async def change_pin(
+    payload: ChangePinRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Secure PIN change for authenticated user (store admin or staff)."""
+    if not verify_pin(payload.current_pin, current_user.pin_hash, current_user.pin_salt):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current PIN is incorrect."
+        )
+
+    new_hash, new_salt = create_pin_hash(payload.new_pin)
+    current_user.pin_hash = new_hash
+    current_user.pin_salt = new_salt
+    await db.commit()
+    return {"message": "PIN updated successfully."}
+

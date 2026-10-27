@@ -21,6 +21,9 @@ class Order(Base, TimestampMixin):
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
 
+    # Idempotency key to safely handle duplicate/retry checkout requests
+    idempotency_key: Mapped[Optional[str]] = mapped_column(String(64), unique=True, index=True, nullable=True)
+
     subtotal: Mapped[float] = mapped_column(Float, nullable=False)
     tax_amount: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     discount_amount: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
