@@ -24,6 +24,8 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 def _build_auth_response(user: User, token: str, expires_at: datetime) -> AuthResponse:
     return AuthResponse(
         token=token,
+        access_token=token,
+        token_type="bearer",
         user_id=user.id,
         username=user.username,
         display_name=user.display_name,

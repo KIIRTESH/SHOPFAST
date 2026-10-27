@@ -1985,8 +1985,15 @@
           <input type="password" id="loginPinInput" class="scan-input" placeholder="4-digit PIN" maxlength="8" style="background:#1B284A; border-color:#2E3F6E; color:white;" required>
         </div>
 
-        <div style="font-size:11.5px; color:#64748B; margin-bottom:16px;">
-          Demo Staff: <code>staff01</code> / <code>staff02</code> / <code>staff03</code> / <code>staff04</code> / <code>staff07</code> (PIN: 1234)
+        <div style="font-size:11.5px; color:#94A3B8; margin-bottom:16px;">
+          <span style="display:block; margin-bottom:6px;">Demo Staff Accounts (PIN: <code>1234</code>):</span>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            <button type="button" onclick="fillStaffCredentials('staff01', '1234')" style="background:#1B284A; border:1px solid #2E3F6E; color:#93C5FD; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">staff01 (C01)</button>
+            <button type="button" onclick="fillStaffCredentials('staff02', '1234')" style="background:#1B284A; border:1px solid #2E3F6E; color:#93C5FD; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">staff02 (C02)</button>
+            <button type="button" onclick="fillStaffCredentials('staff03', '1234')" style="background:#1B284A; border:1px solid #2E3F6E; color:#93C5FD; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">staff03 (C03)</button>
+            <button type="button" onclick="fillStaffCredentials('staff04', '1234')" style="background:#1B284A; border:1px solid #2E3F6E; color:#93C5FD; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">staff04 (C04)</button>
+            <button type="button" onclick="fillStaffCredentials('staff07', '1234')" style="background:#1B284A; border:1px solid #2E3F6E; color:#93C5FD; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">staff07 (C05)</button>
+          </div>
         </div>
 
         <button type="submit" class="btn-action-primary" id="btnLoginSubmit" style="width:100%; padding:12px; justify-content:center;">
@@ -2004,6 +2011,10 @@
   <script>
     const API_BASE = '';
     let authToken = localStorage.getItem('SHOPFAST_TOKEN') || null;
+    if (authToken === 'undefined' || authToken === 'null' || !authToken) {
+      authToken = null;
+      localStorage.removeItem('SHOPFAST_TOKEN');
+    }
 
     const state = {
       user: null,
@@ -2148,6 +2159,8 @@
         loadStaffDashboard();
         loadStaffActiveOrders();
       } catch (err) {
+        authToken = null;
+        localStorage.removeItem('SHOPFAST_TOKEN');
         showToast(err.message, true);
         showStaffLoginModal(err.message);
       }
@@ -2651,8 +2664,15 @@
       modal.style.display = 'flex';
     }
 
+    function fillStaffCredentials(u, p) {
+      document.getElementById('loginUsernameInput').value = u;
+      document.getElementById('loginPinInput').value = p;
+      const fakeEvent = { preventDefault: () => {} };
+      handleStaffLoginSubmit(fakeEvent);
+    }
+
     async function handleStaffLoginSubmit(e) {
-      e.preventDefault();
+      if (e && e.preventDefault) e.preventDefault();
       const u = document.getElementById('loginUsernameInput').value.trim();
       const p = document.getElementById('loginPinInput').value.trim();
       const btn = document.getElementById('btnLoginSubmit');
@@ -2664,7 +2684,7 @@
           body: JSON.stringify({ username: u, pin: p })
         });
 
-        authToken = res.access_token;
+        authToken = res.token || res.access_token;
         localStorage.setItem('SHOPFAST_TOKEN', authToken);
         document.getElementById('staffLoginModal').style.display = 'none';
         initStaffTerminal();

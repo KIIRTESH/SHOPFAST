@@ -46,6 +46,8 @@ class LoginRequest(BaseModel):
 
 class AuthResponse(BaseModel):
     token: str
+    access_token: Optional[str] = None
+    token_type: str = "bearer"
     user_id: int
     username: str
     display_name: str
