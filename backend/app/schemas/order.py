@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from typing import List, Optional
 from datetime import datetime
 
@@ -17,13 +17,28 @@ class OrderItemRead(OrderItemCreate):
     model_config = ConfigDict(from_attributes=True)
 
 
+ALLOWED_PAYMENT_METHODS = ("UPI", "CARD", "NETBANKING", "CASH")
+
+
 class OrderCreate(BaseModel):
     customer_identifier: str = "Customer #A104"
     items: List[OrderItemCreate]
     payment_method: str = "UPI"  # UPI, CARD, NETBANKING, CASH
-    payment_status: str = "PAID"  # PAID, CASH_AT_COUNTER
+    # NOTE: payment_status is intentionally NOT accepted from the client.
+    # The server decides it (see create_order). Extra fields sent by older
+    # clients are ignored by pydantic.
     preferred_counter: Optional[str] = None
     cart_id: Optional[str] = None
+
+    @field_validator("payment_method")
+    @classmethod
+    def payment_method_allowed(cls, v: str) -> str:
+        v = v.strip().upper()
+        if v not in ALLOWED_PAYMENT_METHODS:
+            raise ValueError(
+                f"payment_method must be one of: {', '.join(ALLOWED_PAYMENT_METHODS)}."
+            )
+        return v
 
 
 class OrderRead(BaseModel):

@@ -183,7 +183,10 @@ async def create_order(
         tax_amount=tax_amount,
         discount_amount=discount_amount,
         total_amount=total_amount,
-        payment_status=payload.payment_status,
+        # Server-decided. Real payments are not integrated yet (demo mode), so every
+        # order is recorded as PAID. TODO(payments, last priority): replace this with
+        # the verified result from the payment provider. Never trust the client here.
+        payment_status="PAID",
         payment_method=payload.payment_method,
         counter_id=assigned_counter.id,
         assigned_counter_number=assigned_counter.counter_number,

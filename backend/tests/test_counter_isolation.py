@@ -228,13 +228,24 @@ async def test_global_revenue_system_wide_and_counter_isolation(admin_auth_heade
         o3 = o3_resp.json()
 
         # Create UNPAID order -> MUST NOT COUNT IN REVENUE
-        await client.post("/api/v1/orders", json={
-            "customer_identifier": "Unpaid Customer",
-            "payment_method": "UPI",
-            "payment_status": "PENDING",
-            "preferred_counter": "01",
-            "items": [{"product_barcode": "8901058003765", "product_name": "Maggi", "unit_price": 56.0, "quantity": 1}]
-        }, headers=customer_auth_headers)
+        # (The API no longer lets clients choose payment_status, so insert it directly.)
+        import uuid as _uuid
+        unpaid_num = f"FS-UNPAID-{_uuid.uuid4().hex[:6].upper()}"
+        async with async_session_maker() as db:
+            db.add(Order(
+                order_number=unpaid_num,
+                customer_identifier="Unpaid Customer",
+                subtotal=56.0,
+                tax_amount=2.8,
+                discount_amount=0.0,
+                total_amount=58.8,
+                payment_status="PENDING",
+                payment_method="UPI",
+                assigned_counter_number="01",
+                qr_token=unpaid_num,
+                verification_status="PENDING",
+            ))
+            await db.commit()
 
         # Create CANCELLED order -> MUST NOT COUNT IN REVENUE
         cancelled_resp = await client.post("/api/v1/orders", json={
