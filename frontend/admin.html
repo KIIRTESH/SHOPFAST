@@ -22,7 +22,7 @@
       --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
 
-      /* Dark Sidebar */
+      /* Authentic ShopFast Dark Sidebar */
       --sb-bg: #070D1E;
       --sb-surface: #0E172F;
       --sb-border: #1B284A;
@@ -31,21 +31,23 @@
       --sb-active-bg: rgba(255, 85, 0, 0.12);
       --sb-active-border: #FF5500;
 
-      /* Light Theme Surface */
+      /* Main Light Dashboard */
       --bg: #F8FAFC;
       --surface: #FFFFFF;
       --surface-subtle: #F1F5F9;
       --border: #E2E8F0;
       --border-strong: #CBD5E1;
-
+      
       --text-main: #0F172A;
       --text-muted: #64748B;
       --text-light: #94A3B8;
 
+      /* Signature Orange Brand Accents */
       --primary: #FF5500;
       --primary-hover: #E04B00;
       --primary-light: #FFF2EB;
 
+      /* Semantic Status Colors */
       --green: #15803D;
       --green-bg: #ECFDF5;
       --green-border: #BBF7D0;
@@ -63,10 +65,6 @@
       --blue-bg: #EFF6FF;
       --blue-border: #BFDBFE;
 
-      --purple: #7C3AED;
-      --purple-bg: #F5F3FF;
-      --purple-border: #DDD6FE;
-
       --radius-sm: 6px;
       --radius-md: 10px;
       --radius-lg: 14px;
@@ -77,10 +75,15 @@
       --shadow-lg: 0 10px 25px rgba(0,0,0,0.12);
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       font-family: var(--font-sans);
-      background-color: var(--bg);
+      background: var(--bg);
       color: var(--text-main);
       display: flex;
       height: 100vh;
@@ -88,54 +91,57 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Sidebar */
-    .sidebar {
-      width: 260px;
-      background-color: var(--sb-bg);
-      border-right: 1px solid var(--sb-border);
+    /* =========================================================================
+       SIDEBAR NAVIGATION
+       ========================================================================= */
+    aside.sidebar {
+      width: 250px;
+      min-width: 250px;
+      background: var(--sb-bg);
+      color: var(--sb-text);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      flex-shrink: 0;
-      z-index: 20;
+      border-right: 1px solid var(--sb-border);
+      user-select: none;
+      z-index: 50;
     }
+
     .brand-header {
-      padding: 20px 20px 16px;
-      border-bottom: 1px solid var(--sb-border);
+      padding: 22px 20px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      border-bottom: 1px solid var(--sb-border);
     }
+
     .brand-logo {
       display: flex;
       align-items: center;
-      gap: 10px;
-      color: var(--sb-text-bright);
-      font-size: 18px;
+      gap: 6px;
+      font-size: 20px;
       font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: -0.03em;
       text-decoration: none;
-      letter-spacing: -0.5px;
     }
+
     .brand-bolt {
-      width: 32px;
-      height: 32px;
-      border-radius: var(--radius-md);
-      background: linear-gradient(135deg, #FF5500, #FF8800);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: 800;
+      color: var(--primary);
+      font-size: 22px;
+      line-height: 1;
+      filter: drop-shadow(0 0 8px rgba(255, 85, 0, 0.4));
     }
-    .portal-role-tag {
+
+    .role-badge-pill {
       font-size: 10px;
-      font-weight: 700;
+      font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      padding: 3px 6px;
-      border-radius: 4px;
+      padding: 3px 7px;
+      border-radius: var(--radius-sm);
       background: rgba(255, 85, 0, 0.2);
-      color: #FF8800;
+      color: #FFA366;
       border: 1px solid rgba(255, 85, 0, 0.4);
     }
 
@@ -143,209 +149,249 @@
       padding: 16px 12px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
+      flex: 1;
+      overflow-y: auto;
     }
+
     .nav-item {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 10px 14px;
-      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
       color: var(--sb-text);
       font-size: 13.5px;
       font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
       border: 1px solid transparent;
       background: transparent;
-      cursor: pointer;
-      width: 100%;
       text-align: left;
-      transition: all 0.15s ease;
+      width: 100%;
     }
+
     .nav-item:hover {
+      background: var(--sb-surface);
       color: var(--sb-text-bright);
-      background-color: var(--sb-surface);
     }
+
     .nav-item.active {
-      color: #FF7733;
-      background-color: var(--sb-active-bg);
-      border-color: rgba(255, 85, 0, 0.3);
+      background: var(--sb-active-bg);
+      color: #FFFFFF;
       font-weight: 700;
+      border-left: 3px solid var(--sb-active-border);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
     }
-    .nav-icon { font-size: 16px; }
+
+    .nav-icon {
+      font-size: 16px;
+      min-width: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
 
     .sidebar-footer {
       padding: 16px;
       border-top: 1px solid var(--sb-border);
-      background: rgba(0,0,0,0.2);
+      background: rgba(10, 19, 43, 0.5);
     }
-    .admin-badge-card {
+
+    .counter-badge-card {
       background: var(--sb-surface);
       border: 1px solid var(--sb-border);
       border-radius: var(--radius-md);
-      padding: 12px;
+      padding: 12px 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
-    .admin-label {
-      font-size: 13.5px;
+
+    .counter-label {
+      font-size: 13px;
       font-weight: 800;
-      color: #F8FAFC;
+      color: #FFFFFF;
+      font-family: var(--font-mono);
     }
+
     .status-dot-pill {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-size: 11px;
+      font-size: 11.5px;
       font-weight: 700;
-      color: #10B981;
+      color: #4ADE80;
     }
+
     .status-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background-color: #10B981;
-      box-shadow: 0 0 6px #10B981;
+      background: #22C55E;
+      box-shadow: 0 0 8px #22C55E;
+      animation: pulse 2s infinite ease-in-out;
     }
 
-    /* Main Container */
-    .main-wrapper {
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.85); }
+    }
+
+    /* =========================================================================
+       MAIN VIEWPORT & TERMINAL HEADER
+       ========================================================================= */
+    main.main-viewport {
       flex: 1;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow-y: auto;
       background: var(--bg);
     }
 
-    .top-header {
-      height: 64px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
+    header.terminal-header {
+      background: #0B132B;
+      color: #FFFFFF;
+      border-bottom: 1px solid #1E293B;
+      padding: 14px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 28px;
-      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      z-index: 40;
     }
-    .header-title-box {
+
+    .header-titles h1 {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .header-titles p {
+      font-size: 12px;
+      color: #94A3B8;
+      margin-top: 2px;
+    }
+
+    .header-chips-row {
       display: flex;
       align-items: center;
       gap: 12px;
     }
-    .header-role-badge {
-      background: var(--primary-light);
-      border: 1.5px solid rgba(255, 85, 0, 0.25);
-      border-radius: var(--radius-full);
-      padding: 5px 14px;
-      font-size: 12.5px;
-      font-weight: 800;
-      color: var(--primary);
-      display: flex;
+
+    .pill-chip {
+      display: inline-flex;
       align-items: center;
       gap: 6px;
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
     }
 
-    .content-area {
+    .pill-chip.status-active {
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      color: #4ADE80;
+    }
+
+    .pill-chip.status-progress {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #FBBF24;
+    }
+
+    .pill-chip.order-tag {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #E2E8F0;
+      font-family: var(--font-mono);
+    }
+
+    .pill-chip.revenue-tag {
+      background: rgba(255, 85, 0, 0.15);
+      border: 1px solid rgba(255, 85, 0, 0.35);
+      color: #FFA366;
+      font-family: var(--font-mono);
+    }
+
+    .header-clock {
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: #94A3B8;
+      text-align: right;
+      padding-left: 12px;
+      border-left: 1px solid #1E293B;
+    }
+
+    /* Tab Panels */
+    .tab-content {
+      padding: 20px 24px;
+      display: none;
       flex: 1;
-      overflow-y: auto;
-      padding: 28px;
     }
 
-    .tab-content { display: none; }
-    .tab-content.active { display: block; animation: fadeIn 0.2s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
     /* Cards & Grids */
     .pos-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 22px;
+      padding: 18px 20px;
       box-shadow: var(--shadow-sm);
     }
+
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
       gap: 16px;
       margin-bottom: 24px;
     }
+
     .kpi-card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 18px 20px;
+      border-radius: var(--radius-md);
+      padding: 18px;
       border-left: 4px solid var(--primary);
       box-shadow: var(--shadow-sm);
     }
+
     .kpi-label {
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.05em;
       color: var(--text-muted);
     }
-    .kpi-value {
-      font-size: 26px;
+
+    .kpi-val {
+      font-size: 24px;
       font-weight: 800;
-      font-family: var(--font-mono);
-      margin-top: 6px;
       color: var(--text-main);
-    }
-    .kpi-subtext {
-      font-size: 11.5px;
-      color: var(--text-muted);
+      font-family: var(--font-mono);
       margin-top: 4px;
     }
 
-    /* Inputs & Buttons */
-    .scan-input {
-      width: 100%;
-      padding: 10px 14px;
-      font-size: 13.5px;
-      font-family: var(--font-sans);
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius-md);
-      outline: none;
-      transition: border-color 0.15s ease;
-      background: var(--surface);
+    .kpi-sub {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: 2px;
     }
-    .scan-input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(255, 85, 0, 0.12);
-    }
-    .btn-action-primary {
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: var(--radius-md);
-      padding: 9px 18px;
-      font-size: 13.5px;
-      font-weight: 700;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: background 0.15s ease;
-    }
-    .btn-action-primary:hover { background: var(--primary-hover); }
-    .btn-action-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    .btn-action-secondary {
-      background: var(--surface-subtle);
-      color: var(--text-main);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 8px 16px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .btn-action-secondary:hover { background: #E2E8F0; }
-
-    /* Tables */
+    /* Data Tables */
     .data-table-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -353,200 +399,248 @@
       overflow: hidden;
       box-shadow: var(--shadow-sm);
     }
+
     .data-table-toolbar {
-      padding: 16px 20px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
+      padding: 14px 18px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
       gap: 12px;
       flex-wrap: wrap;
     }
+
     .data-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 13.5px;
-      text-align: left;
+      font-size: 13px;
     }
+
     .data-table th {
       background: var(--surface-subtle);
-      padding: 11px 18px;
+      padding: 10px 14px;
+      text-align: left;
       font-weight: 700;
       color: var(--text-muted);
       border-bottom: 1px solid var(--border);
-      font-size: 11.5px;
       text-transform: uppercase;
-      letter-spacing: 0.4px;
+      font-size: 11px;
     }
+
     .data-table td {
-      padding: 13px 18px;
+      padding: 12px 14px;
       border-bottom: 1px solid var(--border);
       color: var(--text-main);
-      vertical-align: middle;
     }
-    .data-table tr:last-child td { border-bottom: none; }
-    .data-table tr:hover td { background-color: rgba(0,0,0,0.015); }
 
-    /* Status Pills */
-    .status-badge {
+    .data-table tr:hover td {
+      background: #F8FAFC;
+    }
+
+    .scan-input {
+      padding: 10px 12px;
+      border: 1.5px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .scan-input:focus {
+      border-color: var(--primary);
+    }
+
+    .btn-action-primary {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 10px;
-      border-radius: var(--radius-full);
-      font-size: 12px;
-      font-weight: 700;
+      transition: background 0.15s ease;
     }
-    .status-badge.cleared, .status-badge.verified, .status-badge.open {
+
+    .btn-action-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-action-secondary {
+      background: white;
+      color: var(--text-main);
+      border: 1.5px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease;
+    }
+
+    .btn-action-secondary:hover {
+      background: var(--surface-subtle);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+    }
+    .status-badge.verified, .status-badge.completed, .status-badge.open {
       background: var(--green-bg);
-      color: var(--green-dark);
+      color: var(--green);
       border: 1px solid var(--green-border);
     }
-    .status-badge.pending {
+    .status-badge.pending, .status-badge.awaiting {
       background: var(--orange-bg);
       color: var(--orange);
       border: 1px solid var(--orange-border);
     }
-    .status-badge.flagged {
+    .status-badge.flagged, .status-badge.closed, .status-badge.refunded {
       background: var(--red-bg);
       color: var(--red);
       border: 1px solid var(--red-border);
     }
-    .status-badge.closed, .status-badge.refunded, .status-badge.inactive {
-      background: #F1F5F9;
-      color: #64748B;
-      border: 1px solid #CBD5E1;
-    }
-
-    /* Counter Cards Grid */
-    .counters-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-      gap: 18px;
-    }
-    .counter-monitor-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 18px 20px;
-      box-shadow: var(--shadow-sm);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .counter-monitor-card.closed {
-      opacity: 0.75;
-      background: #FAFAFA;
-    }
-
-    /* Toast */
-    #toastContainer {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .toast-msg {
-      background: #0F172A;
-      color: white;
-      padding: 12px 20px;
-      border-radius: var(--radius-md);
-      font-size: 13.5px;
-      font-weight: 600;
-      box-shadow: var(--shadow-lg);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      animation: slideIn 0.2s ease;
-    }
-    .toast-msg.error { background: #DC2626; }
-    @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
     /* Modals */
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.65);
+      background: rgba(7, 13, 30, 0.75);
       backdrop-filter: blur(4px);
+      z-index: 100;
       display: none;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
       padding: 20px;
     }
-    .modal-card {
-      background: var(--surface);
+
+    .modal-dialog {
+      background: white;
       border-radius: var(--radius-lg);
       width: 100%;
       max-width: 520px;
       box-shadow: var(--shadow-lg);
       overflow: hidden;
-      animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      border: 1px solid var(--border);
     }
-    @keyframes modalPop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
     .modal-header {
-      padding: 18px 24px;
+      padding: 16px 20px;
       border-bottom: 1px solid var(--border);
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
+      font-weight: 800;
+      font-size: 16px;
     }
-    .modal-title { font-size: 17px; font-weight: 800; color: var(--text-main); }
-    .modal-body { padding: 24px; max-height: 75vh; overflow-y: auto; }
+
+    .modal-body {
+      padding: 20px;
+      max-height: 75vh;
+      overflow-y: auto;
+    }
+
     .modal-footer {
-      padding: 16px 24px;
+      padding: 14px 20px;
       border-top: 1px solid var(--border);
       background: var(--surface-subtle);
       display: flex;
       justify-content: flex-end;
       gap: 10px;
     }
+
+    /* Admin Login Card */
+    .login-card {
+      background: #0E172F;
+      border: 1px solid var(--sb-border);
+      color: white;
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 420px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      padding: 28px;
+    }
+
+    .toast-pill {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: #0F172A;
+      color: #FFFFFF;
+      padding: 11px 20px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+      z-index: 99999;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      transition: all 0.2s ease;
+    }
+
+    .toast-pill.error {
+      background: #DC2626;
+      border-color: #EF4444;
+    }
   </style>
 </head>
 <body>
 
-  <!-- Toast notifications -->
-  <div id="toastContainer"></div>
-
-  <!-- Sidebar -->
+  <!-- =======================================================================
+       AUTHENTIC SHOPFAST SIDEBAR (DARK NAVY)
+       ======================================================================= -->
   <aside class="sidebar">
     <div>
       <div class="brand-header">
         <a href="/admin" class="brand-logo">
-          <span class="brand-bolt">⚡</span>
-          <span>ShopFast</span>
+          <span class="brand-bolt">⚡</span>ShopFast
         </a>
-        <span class="portal-role-tag">Admin</span>
+        <span class="role-badge-pill">ADMINISTRATOR</span>
       </div>
 
       <nav class="sidebar-nav">
         <button class="nav-item active" data-tab="tab-overview" onclick="switchAdminTab('tab-overview')">
           <span class="nav-icon">📊</span>
-          <span>Overview</span>
+          <span>Store Overview</span>
         </button>
 
         <button class="nav-item" data-tab="tab-catalog" onclick="switchAdminTab('tab-catalog')">
           <span class="nav-icon">📦</span>
-          <span>Inventory & Catalog</span>
+          <span>Inventory Catalog</span>
         </button>
 
         <button class="nav-item" data-tab="tab-transactions" onclick="switchAdminTab('tab-transactions')">
           <span class="nav-icon">📄</span>
-          <span>Transactions</span>
+          <span>Store Transactions</span>
         </button>
 
         <button class="nav-item" data-tab="tab-counters" onclick="switchAdminTab('tab-counters')">
           <span class="nav-icon">🏪</span>
-          <span>Counters</span>
+          <span>Counter Management</span>
         </button>
 
         <button class="nav-item" data-tab="tab-staff" onclick="switchAdminTab('tab-staff')">
           <span class="nav-icon">👥</span>
-          <span>Staff Management</span>
+          <span>Staff Accounts</span>
         </button>
 
         <button class="nav-item" data-tab="tab-settings" onclick="switchAdminTab('tab-settings')">
@@ -557,433 +651,421 @@
     </div>
 
     <div class="sidebar-footer">
-      <div class="admin-badge-card">
+      <div class="counter-badge-card">
         <div>
-          <div class="admin-label">Store Administrator</div>
-          <div style="font-size:11px; color:#64748B;" id="sidebarAdminUser">admin</div>
+          <div class="counter-label" id="sidebarAdminUser">Store Master</div>
+          <div style="font-size:11px; color:#94A3B8;">Central Management</div>
         </div>
         <div class="status-dot-pill">
           <span class="status-dot"></span>
-          <span>Live</span>
+          <span id="adminWsStatus">Online</span>
         </div>
       </div>
-      <div style="margin-top:10px;">
-        <button type="button" onclick="adminLogout()" class="btn-action-secondary" style="width:100%; justify-content:center; font-size:11.5px; padding:6px; color:#EF4444; border-color:#EF4444;">
-          🚪 Log Out Admin
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; gap:6px;">
+        <button type="button" onclick="adminLogout()" class="btn-action-secondary" style="width:100%; font-size:11px; padding:6px 10px; color:#F87171; border-color:#7F1D1D; background:rgba(220,38,38,0.1); cursor:pointer;">
+          Log Out ⏻
         </button>
       </div>
+      <a href="/" style="display:block; text-align:center; font-size:11px; color:#64748B; margin-top:10px; text-decoration:none;">
+        Customer Self-Checkout App ↗
+      </a>
     </div>
   </aside>
 
-  <!-- Main Content -->
-  <div class="main-wrapper">
-    <header class="top-header">
-      <div class="header-title-box">
-        <div class="header-role-badge">
-          <span>🛡️</span>
-          <span>Store Administrator • Supermarket Management</span>
+  <!-- =======================================================================
+       MAIN VIEWPORT
+       ======================================================================= -->
+  <main class="main-viewport">
+
+    <!-- Top Navy Control Header -->
+    <header class="terminal-header">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <a href="/" class="btn-action-secondary" style="text-decoration:none; display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; padding:6px 12px; color:var(--text-main); border-color:var(--border-strong); background:var(--surface);" title="Go to Customer Self-Checkout">
+          ← Return to Store
+        </a>
+        <div class="header-titles">
+          <h1>ShopFast Store Administration</h1>
+          <p id="headerSubtitle">Sai Supermarket • Central Control Terminal</p>
         </div>
-        <span style="font-size:13px; color:var(--text-muted);">Centralized Operational Oversight</span>
       </div>
 
-      <div style="display:flex; align-items:center; gap:12px;">
-        <button class="btn-action-secondary" onclick="refreshCurrentAdminTab()">↻ Refresh View</button>
-        <span style="font-size:12px; font-weight:700; color:#10B981;" id="adminWsStatus">● Live Sync: Connected</span>
+      <div class="header-chips-row">
+        <div class="pill-chip status-active" id="headerAdminStatusPill">
+          ● STORE ONLINE
+        </div>
+        <div class="pill-chip order-tag" id="headerCountersCountPill">
+          5 Counters Active
+        </div>
+        <div class="pill-chip revenue-tag" id="headerRevenuePill">
+          Store Revenue: ₹0.00
+        </div>
+
+        <div class="header-clock" id="liveHeaderClock">
+          --:-- --<br><span style="font-size:10px; opacity:0.8;">Central Control</span>
+        </div>
       </div>
     </header>
 
-    <main class="content-area">
+    <!-- =====================================================================
+         TAB 1: STORE OVERVIEW (STORE-WIDE KPI STRIP & COUNTERS GRID)
+         ===================================================================== -->
+    <section id="tab-overview" class="tab-content active">
+      <div style="margin-bottom:20px;">
+        <h1 style="font-size:22px; font-weight:800;">Supermarket Operations Dashboard</h1>
+        <p style="font-size:13px; color:var(--text-muted);">Real-time monitoring across all 5 checkout registers and central inventory.</p>
+      </div>
 
-      <!-- =====================================================================
-           TAB 1: OVERVIEW DASHBOARD
-           ===================================================================== -->
-      <section id="tab-overview" class="tab-content active">
-        <div style="margin-bottom:20px;">
-          <h1 style="font-size:22px; font-weight:800; letter-spacing:-0.5px;">Supermarket Operations Overview</h1>
-          <p style="font-size:13.5px; color:var(--text-muted); margin-top:2px;">Centralized metrics across product catalog, registers, cashier staffing, and transactions.</p>
+      <!-- 4 Top KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Store Revenue Today</div>
+          <div class="kpi-val" id="kpiTotalRevenue" style="color:var(--primary);">₹0.00</div>
+          <div class="kpi-sub">Across all checkout lanes</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Today's Transactions</div>
+          <div class="kpi-val" id="kpiTotalOrders">0</div>
+          <div class="kpi-sub">Completed customer checkouts</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Open Checkout Counters</div>
+          <div class="kpi-val" id="kpiOpenCounters" style="color:var(--green);">5 / 5</div>
+          <div class="kpi-sub">Operational POS stations</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Store-Wide Queue</div>
+          <div class="kpi-val" id="kpiStoreQueue" style="color:var(--orange);">0</div>
+          <div class="kpi-sub">Awaiting verification</div>
+        </div>
+      </div>
+
+      <!-- 4 Secondary Metrics Strip -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); margin-bottom:24px;">
+        <div class="kpi-card" style="border-left-color:var(--blue);">
+          <div class="kpi-label">Active Cashiers</div>
+          <div class="kpi-val" id="kpiActiveStaff" style="font-size:20px;">0</div>
+        </div>
+        <div class="kpi-card" style="border-left-color:var(--orange);">
+          <div class="kpi-label">Pending Reverifications</div>
+          <div class="kpi-val" id="kpiPendingVerif" style="font-size:20px;">0</div>
+        </div>
+        <div class="kpi-card" style="border-left-color:var(--green);">
+          <div class="kpi-label">Verified Today</div>
+          <div class="kpi-val" id="kpiVerifiedToday" style="font-size:20px;">0</div>
+        </div>
+        <div class="kpi-card" style="border-left-color:#7C3AED;">
+          <div class="kpi-label">Avg Verification Time</div>
+          <div class="kpi-val" id="kpiAvgDuration" style="font-size:20px;">--s</div>
+        </div>
+      </div>
+
+      <!-- 5 Counters Live Overview Grid -->
+      <div class="data-table-card" style="margin-bottom:24px;">
+        <div class="data-table-toolbar">
+          <div style="font-weight:800; font-size:14px;">5-Counter Real-Time Status</div>
+          <button class="btn-action-secondary" onclick="loadOverviewData()">↻ Refresh Counters</button>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Register</th>
+              <th>Counter Name</th>
+              <th>Lane Type</th>
+              <th>Status</th>
+              <th>Queue Load</th>
+              <th>Throughput</th>
+              <th>Today's Volume</th>
+            </tr>
+          </thead>
+          <tbody id="overviewCountersTableBody">
+            <tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:20px;">Loading counter statuses...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Recent Store Activity Stream -->
+      <div class="data-table-card">
+        <div class="data-table-toolbar">
+          <div style="font-weight:800; font-size:14px;">Live Store Transactions Stream</div>
+          <span style="font-size:12px; color:var(--text-muted);">Real-time stream across all lanes</span>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Order #</th>
+              <th>Customer</th>
+              <th>Counter</th>
+              <th>Items</th>
+              <th>Total Amount (₹)</th>
+              <th>Status</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody id="overviewRecentTxTableBody">
+            <tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:20px;">Loading store transactions...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         TAB 2: INVENTORY CATALOG MANAGEMENT
+         ===================================================================== -->
+    <section id="tab-catalog" class="tab-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+        <div>
+          <h1 style="font-size:22px; font-weight:800;">Inventory Catalog</h1>
+          <p style="font-size:13px; color:var(--text-muted);">Master supermarket product catalog, barcode mappings, and inventory stock levels.</p>
+        </div>
+        <button class="btn-action-primary" onclick="openAddProductModal()">
+          ＋ Add New Product
+        </button>
+      </div>
+
+      <div class="data-table-card">
+        <div class="data-table-toolbar">
+          <div style="display:flex; gap:10px; align-items:center; flex:1; flex-wrap:wrap;">
+            <input type="text" id="catalogSearchInput" placeholder="Search product name, barcode..." class="scan-input" style="max-width:280px;" oninput="onCatalogSearchChange()">
+            <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:var(--text-muted); cursor:pointer;">
+              <input type="checkbox" id="catalogLowStockCheck" onchange="loadCatalogData()">
+              <span>Low Stock Alerts Only</span>
+            </label>
+          </div>
+          <button class="btn-action-secondary" onclick="loadCatalogData()">↻ Refresh Catalog</button>
         </div>
 
-        <!-- 4 Primary KPI Cards -->
-        <div class="kpi-grid">
-          <div class="kpi-card" style="border-left-color: var(--primary);">
-            <div class="kpi-label">Total System Revenue</div>
-            <div class="kpi-value" style="color:var(--primary);" id="kpiTotalRevenue">₹0.00</div>
-            <div class="kpi-subtext">Verified & paid transactions only</div>
-          </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Barcode</th>
+              <th>Category</th>
+              <th>Price (₹)</th>
+              <th style="text-align:center;">Initial</th>
+              <th style="text-align:center;">In Stock</th>
+              <th>Stock Status</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="catalogTableBody">
+            <tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:30px;">Loading product catalog...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-          <div class="kpi-card" style="border-left-color: var(--blue);">
-            <div class="kpi-label">Completed Transactions</div>
-            <div class="kpi-value" style="color:var(--blue);" id="kpiTotalOrders">0</div>
-            <div class="kpi-subtext">Total verified orders processed</div>
-          </div>
+    <!-- =====================================================================
+         TAB 3: STORE TRANSACTIONS AUDIT LEDGER
+         ===================================================================== -->
+    <section id="tab-transactions" class="tab-content">
+      <div style="margin-bottom:20px;">
+        <h1 style="font-size:22px; font-weight:800;">Global Transactions Audit Ledger</h1>
+        <p style="font-size:13px; color:var(--text-muted);">Central ledger of all transactions processed store-wide across all 5 counters.</p>
+      </div>
 
-          <div class="kpi-card" style="border-left-color: var(--green);">
-            <div class="kpi-label">Open Checkout Counters</div>
-            <div class="kpi-value" style="color:var(--green);" id="kpiOpenCounters">5 / 5</div>
-            <div class="kpi-subtext">Active POS registers online</div>
-          </div>
+      <div class="data-table-card">
+        <div class="data-table-toolbar">
+          <div style="display:flex; gap:10px; align-items:center; flex:1; flex-wrap:wrap;">
+            <input type="text" id="adminTxSearchInput" placeholder="Search Order # or Customer..." class="scan-input" style="max-width:220px;" oninput="onAdminTxSearchChange()">
+            
+            <select id="adminTxFilterCounter" class="scan-input" style="max-width:160px;" onchange="loadTransactionsData()">
+              <option value="">All Counters</option>
+              <option value="01">Counter 01</option>
+              <option value="02">Counter 02</option>
+              <option value="03">Counter 03</option>
+              <option value="04">Counter 04</option>
+              <option value="07">Counter 07</option>
+            </select>
 
-          <div class="kpi-card" style="border-left-color: var(--purple);">
-            <div class="kpi-label">Active Staff Online</div>
-            <div class="kpi-value" style="color:var(--purple);" id="kpiActiveStaff">0</div>
-            <div class="kpi-subtext">Cashiers currently authenticated</div>
+            <select id="adminTxFilterStatus" class="scan-input" style="max-width:160px;" onchange="loadTransactionsData()">
+              <option value="">All Statuses</option>
+              <option value="VERIFIED">Cleared / Verified</option>
+              <option value="PENDING">Pending</option>
+              <option value="FLAGGED">Flagged</option>
+              <option value="REFUNDED">Refunded</option>
+            </select>
           </div>
+          <button class="btn-action-secondary" onclick="loadTransactionsData()">↻ Reload Ledger</button>
         </div>
 
-        <!-- Secondary Operational Strip -->
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:24px;">
-          <div class="pos-card" style="padding:14px;">
-            <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Pending Cart Verifications</div>
-            <div style="font-size:20px; font-weight:800; color:var(--orange); font-family:var(--font-mono); margin-top:2px;" id="kpiPendingVerif">0</div>
-          </div>
-          <div class="pos-card" style="padding:14px;">
-            <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Total Verified Today</div>
-            <div style="font-size:20px; font-weight:800; color:var(--green); font-family:var(--font-mono); margin-top:2px;" id="kpiVerifiedToday">0</div>
-          </div>
-          <div class="pos-card" style="padding:14px;">
-            <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Active Store Queue Length</div>
-            <div style="font-size:20px; font-weight:800; color:var(--blue); font-family:var(--font-mono); margin-top:2px;" id="kpiStoreQueue">0</div>
-          </div>
-          <div class="pos-card" style="padding:14px;">
-            <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Avg Reverification Duration</div>
-            <div style="font-size:20px; font-weight:800; color:var(--text-main); font-family:var(--font-mono); margin-top:2px;" id="kpiAvgDuration">17s</div>
-          </div>
-        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Order #</th>
+              <th>Counter</th>
+              <th>Customer</th>
+              <th>Items</th>
+              <th>Amount (₹)</th>
+              <th>Payment</th>
+              <th>Verification</th>
+              <th>Date & Time</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="adminTxTableBody">
+            <tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:30px;">Loading transactions...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-        <!-- Counter-Wise Operational Summary -->
-        <div class="data-table-card" style="margin-bottom:24px;">
-          <div class="data-table-toolbar">
-            <h3 style="font-size:15px; font-weight:800;">Counter-Wise Operational Summaries</h3>
-            <button class="btn-action-secondary" onclick="loadOverviewData()">↻ Refresh Counters</button>
-          </div>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Counter</th>
-                <th>Name</th>
-                <th>Lane Type</th>
-                <th>Operating Status</th>
-                <th>Queue Length</th>
-                <th>Waiting Orders</th>
-                <th>Scan Speed</th>
-                <th>Revenue (₹)</th>
-              </tr>
-            </thead>
-            <tbody id="overviewCountersTableBody">
-              <tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:20px;">Loading counter metrics...</td></tr>
-            </tbody>
-          </table>
-        </div>
+    <!-- =====================================================================
+         TAB 4: COUNTER MANAGEMENT & POS ORCHESTRATION
+         ===================================================================== -->
+    <section id="tab-counters" class="tab-content">
+      <div style="margin-bottom:20px;">
+        <h1 style="font-size:22px; font-weight:800;">Counter POS Orchestration</h1>
+        <p style="font-size:13px; color:var(--text-muted);">Manage register availability, lane types, and staff assignments.</p>
+      </div>
 
-        <!-- Recent Store Transactions -->
-        <div class="data-table-card">
-          <div class="data-table-toolbar">
-            <h3 style="font-size:15px; font-weight:800;">Recent Store-Wide Transaction Activity</h3>
-            <button class="btn-action-secondary" onclick="switchAdminTab('tab-transactions')">View Full Ledger →</button>
-          </div>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Order #</th>
-                <th>Customer</th>
-                <th>Counter</th>
-                <th>Items</th>
-                <th>Amount (₹)</th>
-                <th>Verification Status</th>
-                <th>Time</th>
-              </tr>
-            </thead>
-            <tbody id="overviewRecentTxTableBody">
-              <tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:20px;">Loading activity...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <div id="countersMonitorGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:18px;">
+        <!-- Dynamically populated -->
+      </div>
+    </section>
 
-      <!-- =====================================================================
-           TAB 2: INVENTORY & CATALOG MANAGEMENT
-           ===================================================================== -->
-      <section id="tab-catalog" class="tab-content">
-        <div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-          <div>
-            <h1 style="font-size:22px; font-weight:800;">Inventory and Product Catalog</h1>
-            <p style="font-size:13.5px; color:var(--text-muted); margin-top:2px;">Manage products, live stock counts, pricing, and barcode verification.</p>
-          </div>
-          <button class="btn-action-primary" onclick="openAddProductModal()">+ Add New Product</button>
+    <!-- =====================================================================
+         TAB 5: STAFF ACCOUNTS MANAGEMENT
+         ===================================================================== -->
+    <section id="tab-staff" class="tab-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+        <div>
+          <h1 style="font-size:22px; font-weight:800;">Staff Cashier Accounts</h1>
+          <p style="font-size:13px; color:var(--text-muted);">Manage cashier operator logins, assigned counters, and security PINs.</p>
         </div>
+        <button class="btn-action-primary" onclick="openAddStaffModal()">
+          ＋ Provision New Staff Account
+        </button>
+      </div>
 
-        <div class="data-table-card">
-          <div class="data-table-toolbar">
-            <div style="display:flex; gap:12px; align-items:center; flex:1; flex-wrap:wrap;">
-              <input type="text" id="catalogSearchInput" placeholder="Search product name, barcode, category..." class="scan-input" style="max-width:300px;" oninput="onCatalogSearchChange()">
-              <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:700; color:var(--text-muted); cursor:pointer;">
-                <input type="checkbox" id="catalogLowStockCheck" onchange="loadCatalogData()">
-                <span>Low Stock Only (≤ 10 units)</span>
-              </label>
+      <div class="data-table-card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Cashier Full Name</th>
+              <th>Assigned Register</th>
+              <th>Role</th>
+              <th>Account Status</th>
+              <th>Created Date</th>
+              <th style="text-align:right;">Security Actions</th>
+            </tr>
+          </thead>
+          <tbody id="staffAccountsTableBody">
+            <tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:30px;">Loading staff accounts...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         TAB 6: SETTINGS
+         ===================================================================== -->
+    <section id="tab-settings" class="tab-content">
+      <div style="max-width:620px;">
+        <h1 style="font-size:22px; font-weight:800; margin-bottom:16px;">Store Administration Settings</h1>
+
+        <div class="pos-card" style="margin-bottom:20px;">
+          <h3 style="font-size:16px; font-weight:800; margin-bottom:14px;">Store Profile</h3>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; font-size:13.5px;">
+            <div>
+              <span style="color:var(--text-muted); font-size:12px;">Supermarket Name</span>
+              <div style="font-weight:700; margin-top:2px;">Sai Supermarket Ltd.</div>
             </div>
-            <button class="btn-action-secondary" onclick="loadCatalogData()">↻ Refresh Catalog</button>
-          </div>
-
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Barcode</th>
-                <th>Category</th>
-                <th>Price (₹)</th>
-                <th style="text-align:center;">Initial Stock</th>
-                <th style="text-align:center;">Current Stock</th>
-                <th>Status</th>
-                <th style="text-align:right;">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="catalogTableBody">
-              <tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:30px;">Loading catalog...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- =====================================================================
-           TAB 3: TRANSACTION MANAGEMENT
-           ===================================================================== -->
-      <section id="tab-transactions" class="tab-content">
-        <div style="margin-bottom:20px;">
-          <h1 style="font-size:22px; font-weight:800;">Store-Wide Transactions Audit</h1>
-          <p style="font-size:13.5px; color:var(--text-muted); margin-top:2px;">Audit transactions across all five checkout registers with server-side filters.</p>
-        </div>
-
-        <div class="data-table-card">
-          <div class="data-table-toolbar">
-            <div style="display:flex; gap:10px; align-items:center; flex:1; flex-wrap:wrap;">
-              <input type="text" id="txSearchInput" placeholder="Search Order # or Customer..." class="scan-input" style="max-width:240px;" oninput="onTxSearchChange()">
-              <select id="txFilterCounter" class="scan-input" style="max-width:150px;" onchange="loadTransactionsData()">
-                <option value="">All Counters</option>
-                <option value="01">Counter 01</option>
-                <option value="02">Counter 02</option>
-                <option value="03">Counter 03</option>
-                <option value="04">Counter 04</option>
-                <option value="07">Counter 07</option>
-              </select>
-              <select id="txFilterStatus" class="scan-input" style="max-width:160px;" onchange="loadTransactionsData()">
-                <option value="">All Statuses</option>
-                <option value="VERIFIED">Cleared / Verified</option>
-                <option value="PENDING">Pending Verification</option>
-                <option value="FLAGGED">Flagged</option>
-                <option value="REFUNDED">Refunded</option>
-              </select>
-              <select id="txFilterDate" class="scan-input" style="max-width:140px;" onchange="loadTransactionsData()">
-                <option value="">All Time</option>
-                <option value="today">Today</option>
-              </select>
+            <div>
+              <span style="color:var(--text-muted); font-size:12px;">Store ID / Terminal</span>
+              <div style="font-weight:700; margin-top:2px;">SHOPFAST-STORE-01</div>
             </div>
-            <button class="btn-action-secondary" onclick="loadTransactionsData()">↻ Reload Ledger</button>
-          </div>
-
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Order #</th>
-                <th>Customer</th>
-                <th>Counter</th>
-                <th>Items</th>
-                <th>Amount (₹)</th>
-                <th>Payment</th>
-                <th>Status</th>
-                <th>Duration</th>
-                <th>Timestamp</th>
-                <th style="text-align:right;">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="transactionsTableBody">
-              <tr><td colspan="10" style="text-align:center; color:var(--text-muted); padding:30px;">Loading transactions...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- =====================================================================
-           TAB 4: COUNTER MONITORING
-           ===================================================================== -->
-      <section id="tab-counters" class="tab-content">
-        <div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <h1 style="font-size:22px; font-weight:800;">Checkout Counter Monitoring</h1>
-            <p style="font-size:13.5px; color:var(--text-muted); margin-top:2px;">Real-time status, cashier assignments, and controls for all 5 supermarket registers.</p>
-          </div>
-          <button class="btn-action-secondary" onclick="loadCountersMonitorData()">↻ Refresh Counters</button>
-        </div>
-
-        <div class="counters-grid" id="countersMonitorGrid">
-          <!-- Populated via JS -->
-        </div>
-      </section>
-
-      <!-- =====================================================================
-           TAB 5: STAFF MANAGEMENT
-           ===================================================================== -->
-      <section id="tab-staff" class="tab-content">
-        <div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-          <div>
-            <h1 style="font-size:22px; font-weight:800;">Staff Management</h1>
-            <p style="font-size:13.5px; color:var(--text-muted); margin-top:2px;">Manage cashier accounts, counter assignments, credentials, and access permissions.</p>
-          </div>
-          <button class="btn-action-primary" onclick="openAddStaffModal()">+ Provision Staff Account</button>
-        </div>
-
-        <div class="data-table-card">
-          <div class="data-table-toolbar">
-            <h3 style="font-size:15px; font-weight:800;">Assigned Counter Staff Members</h3>
-            <button class="btn-action-secondary" onclick="loadStaffManagementData()">↻ Refresh Staff</button>
-          </div>
-
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Cashier Name</th>
-                <th>Username</th>
-                <th>Assigned Counter</th>
-                <th>Status</th>
-                <th>Online Status</th>
-                <th>Last Active</th>
-                <th style="text-align:right;">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="staffTableBody">
-              <tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:30px;">Loading staff accounts...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- =====================================================================
-           TAB 6: SETTINGS
-           ===================================================================== -->
-      <section id="tab-settings" class="tab-content">
-        <div style="max-width:640px;">
-          <h1 style="font-size:22px; font-weight:800; margin-bottom:18px;">Administrator Settings</h1>
-
-          <div class="pos-card" style="margin-bottom:20px;">
-            <h3 style="font-size:16px; font-weight:800; margin-bottom:14px;">Store Administrator Profile</h3>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; font-size:13.5px;">
-              <div>
-                <span style="color:var(--text-muted); font-size:12px;">Admin Username</span>
-                <div style="font-weight:700; margin-top:2px;">admin</div>
-              </div>
-              <div>
-                <span style="color:var(--text-muted); font-size:12px;">Role Level</span>
-                <div style="font-weight:700; color:var(--primary); margin-top:2px;">Store Administrator (Global)</div>
-              </div>
-              <div>
-                <span style="color:var(--text-muted); font-size:12px;">Store Name</span>
-                <div style="font-weight:700; margin-top:2px;">ShopFast Supermarket</div>
-              </div>
-              <div>
-                <span style="color:var(--text-muted); font-size:12px;">Registers Supported</span>
-                <div style="font-weight:700; margin-top:2px;">5 Assigned Counters</div>
-              </div>
+            <div>
+              <span style="color:var(--text-muted); font-size:12px;">Active Checkouts</span>
+              <div style="font-weight:800; color:var(--primary); font-family:var(--font-mono); margin-top:2px;">5 Isolated Registers</div>
+            </div>
+            <div>
+              <span style="color:var(--text-muted); font-size:12px;">System Authority</span>
+              <div style="font-weight:700; margin-top:2px;">Store Administrator</div>
             </div>
           </div>
-
-          <!-- Change PIN -->
-          <div class="pos-card" style="margin-bottom:20px;">
-            <h3 style="font-size:16px; font-weight:800; margin-bottom:12px;">Change Administrator PIN</h3>
-            <form onsubmit="handleAdminChangePinSubmit(event)">
-              <div style="margin-bottom:12px;">
-                <label style="font-size:12px; font-weight:700; color:var(--text-muted);">Current PIN</label>
-                <input type="password" id="adminCurrentPin" class="scan-input" placeholder="Current 4-digit PIN" required maxlength="8">
-              </div>
-              <div style="margin-bottom:16px;">
-                <label style="font-size:12px; font-weight:700; color:var(--text-muted);">New PIN (4–8 digits)</label>
-                <input type="password" id="adminNewPin" class="scan-input" placeholder="New PIN" required maxlength="8">
-              </div>
-              <button type="submit" class="btn-action-primary" id="btnAdminChangePin">Update Security PIN</button>
-            </form>
-          </div>
-
-          <!-- Logout -->
-          <div class="pos-card">
-            <h3 style="font-size:16px; font-weight:800; margin-bottom:8px; color:#EF4444;">Terminate Admin Session</h3>
-            <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">Sign out from the Store Administrator portal. Token will be invalidated.</p>
-            <button type="button" class="btn-action-secondary" onclick="adminLogout()" style="color:#EF4444; border-color:#EF4444; font-weight:700;">
-              🚪 Exit Admin Terminal
-            </button>
-          </div>
         </div>
-      </section>
 
-    </main>
-  </div>
+        <!-- Change Admin PIN Card -->
+        <div class="pos-card" style="margin-bottom:20px;">
+          <h3 style="font-size:16px; font-weight:800; margin-bottom:12px;">Change Administrator PIN</h3>
+          <form onsubmit="handleAdminChangePinSubmit(event)">
+            <div style="margin-bottom:12px;">
+              <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Current Admin PIN</label>
+              <input type="password" id="adminCurrentPin" class="scan-input" placeholder="Current PIN" required maxlength="8">
+            </div>
+            <div style="margin-bottom:16px;">
+              <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">New Admin PIN (4–8 digits)</label>
+              <input type="password" id="adminNewPin" class="scan-input" placeholder="New PIN" required maxlength="8">
+            </div>
+            <button type="submit" class="btn-action-primary" id="btnAdminChangePin">Update Administrator PIN</button>
+          </form>
+        </div>
+
+        <!-- Logout -->
+        <div class="pos-card">
+          <h3 style="font-size:16px; font-weight:800; margin-bottom:8px; color:#EF4444;">Terminate Admin Session</h3>
+          <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">Sign out of central administration. Active token will be permanently revoked.</p>
+          <button type="button" class="btn-action-secondary" onclick="adminLogout()" style="color:#EF4444; border-color:#EF4444; font-weight:700;">
+            🚪 Exit Master Terminal
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
 
   <!-- =========================================================================
-       MODAL 1: ADD PRODUCT MODAL
+       MODALS
        ========================================================================= -->
+
+  <!-- MODAL 1: ADD PRODUCT -->
   <div class="modal-overlay" id="addProductModal">
-    <div class="modal-card">
+    <div class="modal-dialog">
       <div class="modal-header">
-        <h3 class="modal-title">Add New Catalog Product</h3>
+        <h3>Add New Supermarket Product</h3>
         <button type="button" onclick="closeAddProductModal()" style="background:none; border:none; font-size:20px; cursor:pointer;">✕</button>
       </div>
       <form onsubmit="handleAddProductSubmit(event)">
         <div class="modal-body">
-          <div id="addProductErrorMsg" style="display:none; background:var(--red-bg); border:1px solid var(--red-border); color:var(--red); padding:10px; border-radius:6px; font-size:12.5px; margin-bottom:14px;"></div>
-          
           <div style="margin-bottom:12px;">
-            <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Product Barcode (Numeric/Alphanumeric)</label>
-            <input type="text" id="newProdBarcode" class="scan-input" placeholder="e.g. 8901234567890" required>
+            <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Product Name</label>
+            <input type="text" id="newProdName" class="scan-input" placeholder="e.g. Organic Milk 1L" required>
           </div>
-
-          <div style="margin-bottom:12px;">
-            <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Product Title</label>
-            <input type="text" id="newProdName" class="scan-input" placeholder="e.g. Britannia Bourbon" required>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+            <div>
+              <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Barcode (SKU)</label>
+              <input type="text" id="newProdBarcode" class="scan-input" placeholder="e.g. 8901030000000" required>
+            </div>
+            <div>
+              <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Category</label>
+              <input type="text" id="newProdCategory" class="scan-input" placeholder="e.g. Dairy" required>
+            </div>
           </div>
-
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
             <div>
               <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Price (₹)</label>
-              <input type="number" step="0.5" min="0" id="newProdPrice" class="scan-input" placeholder="e.g. 40.0" required>
+              <input type="number" step="0.01" min="0" id="newProdPrice" class="scan-input" placeholder="e.g. 45.00" required>
             </div>
             <div>
               <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Initial Stock Quantity</label>
-              <input type="number" min="0" id="newProdStock" class="scan-input" value="100" required>
-            </div>
-          </div>
-
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
-            <div>
-              <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Category</label>
-              <select id="newProdCategory" class="scan-input">
-                <option value="Biscuits">Biscuits</option>
-                <option value="Dairy">Dairy</option>
-                <option value="Snacks">Snacks</option>
-                <option value="Beverage">Beverage</option>
-                <option value="Personal Care">Personal Care</option>
-                <option value="Household">Household</option>
-                <option value="Instant Food">Instant Food</option>
-                <option value="Stationery">Stationery</option>
-              </select>
-            </div>
-            <div>
-              <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Icon Emoji</label>
-              <input type="text" id="newProdIcon" class="scan-input" value="📦" required>
+              <input type="number" min="0" id="newProdStock" class="scan-input" placeholder="e.g. 50" required>
             </div>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-action-secondary" onclick="closeAddProductModal()">Cancel</button>
-          <button type="submit" class="btn-action-primary" id="btnSubmitAddProduct">Save Product to Catalog</button>
+          <button type="submit" class="btn-action-primary">Create Product</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- =========================================================================
-       MODAL 2: EDIT PRODUCT MODAL
-       ========================================================================= -->
+  <!-- MODAL 2: EDIT PRODUCT -->
   <div class="modal-overlay" id="editProductModal">
-    <div class="modal-card">
+    <div class="modal-dialog">
       <div class="modal-header">
-        <h3 class="modal-title" id="editProductTitle">Edit Product</h3>
+        <h3>Edit Product Details & Stock</h3>
         <button type="button" onclick="closeEditProductModal()" style="background:none; border:none; font-size:20px; cursor:pointer;">✕</button>
       </div>
       <form onsubmit="handleEditProductSubmit(event)">
@@ -995,19 +1077,13 @@
           </div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
             <div>
-              <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Price (₹)</label>
-              <input type="number" step="0.5" min="0" id="editProdPrice" class="scan-input" required>
+              <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Unit Price (₹)</label>
+              <input type="number" step="0.01" min="0" id="editProdPrice" class="scan-input" required>
             </div>
             <div>
-              <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Current Stock</label>
+              <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Current Stock Qty</label>
               <input type="number" min="0" id="editProdStock" class="scan-input" required>
             </div>
-          </div>
-          <div style="margin-bottom:12px;">
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; cursor:pointer;">
-              <input type="checkbox" id="editProdIsActive">
-              <span>Active in Supermarket Catalog</span>
-            </label>
           </div>
         </div>
         <div class="modal-footer">
@@ -1018,29 +1094,23 @@
     </div>
   </div>
 
-  <!-- =========================================================================
-       MODAL 3: ADD STAFF MODAL
-       ========================================================================= -->
+  <!-- MODAL 3: PROVISION STAFF -->
   <div class="modal-overlay" id="addStaffModal">
-    <div class="modal-card">
+    <div class="modal-dialog">
       <div class="modal-header">
-        <h3 class="modal-title">Provision New Staff Account</h3>
+        <h3>Provision New Staff Account</h3>
         <button type="button" onclick="closeAddStaffModal()" style="background:none; border:none; font-size:20px; cursor:pointer;">✕</button>
       </div>
       <form onsubmit="handleAddStaffSubmit(event)">
         <div class="modal-body">
-          <div id="addStaffErrorMsg" style="display:none; background:var(--red-bg); border:1px solid var(--red-border); color:var(--red); padding:10px; border-radius:6px; font-size:12.5px; margin-bottom:14px;"></div>
-
           <div style="margin-bottom:12px;">
             <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Cashier Full Name</label>
             <input type="text" id="newStaffDisplayName" class="scan-input" placeholder="e.g. Jane Doe" required>
           </div>
-
           <div style="margin-bottom:12px;">
             <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Username</label>
             <input type="text" id="newStaffUsername" class="scan-input" placeholder="e.g. staff_lane5" required>
           </div>
-
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
             <div>
               <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Security PIN (4–8 digits)</label>
@@ -1060,25 +1130,23 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-action-secondary" onclick="closeAddStaffModal()">Cancel</button>
-          <button type="submit" class="btn-action-primary">Create Staff Account</button>
+          <button type="submit" class="btn-action-primary">Create Account</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- =========================================================================
-       MODAL 4: RESET STAFF PIN MODAL
-       ========================================================================= -->
+  <!-- MODAL 4: RESET PIN -->
   <div class="modal-overlay" id="resetPinModal">
-    <div class="modal-card" style="max-width:400px;">
+    <div class="modal-dialog" style="max-width:400px;">
       <div class="modal-header">
-        <h3 class="modal-title">Reset Staff PIN</h3>
+        <h3>Reset Staff Security PIN</h3>
         <button type="button" onclick="closeResetPinModal()" style="background:none; border:none; font-size:20px; cursor:pointer;">✕</button>
       </div>
       <form onsubmit="handleResetPinSubmit(event)">
         <input type="hidden" id="resetPinUserId">
         <div class="modal-body">
-          <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Enter a new security PIN for staff member <strong id="resetPinUsernameDisplay">--</strong>. Any active sessions will be invalidated immediately.</p>
+          <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Enter a new security PIN for staff member <strong id="resetPinUsernameDisplay">--</strong>.</p>
           <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">New Security PIN</label>
           <input type="password" id="resetPinInput" class="scan-input" placeholder="Enter new PIN" required maxlength="8">
         </div>
@@ -1090,13 +1158,11 @@
     </div>
   </div>
 
-  <!-- =========================================================================
-       MODAL 5: ORDER DETAILS MODAL
-       ========================================================================= -->
-  <div class="modal-overlay" id="adminOrderDetailsModal">
-    <div class="modal-card">
+  <!-- MODAL 5: ORDER DETAILS & REFUND -->
+  <div class="modal-overlay" id="adminOrderModal">
+    <div class="modal-dialog">
       <div class="modal-header">
-        <h3 class="modal-title" id="adminModalOrderNumber">Order Details</h3>
+        <h3 id="adminModalOrderNumber">Order Details</h3>
         <button type="button" onclick="closeAdminOrderModal()" style="background:none; border:none; font-size:20px; cursor:pointer;">✕</button>
       </div>
       <div class="modal-body" id="adminModalOrderBody"></div>
@@ -1106,66 +1172,76 @@
     </div>
   </div>
 
-  <!-- =========================================================================
-       MODAL 6: ADMIN LOGIN MODAL
-       ========================================================================= -->
+  <!-- MODAL 6: ADMIN LOGIN MODAL (AUTHENTIC SHOPFAST DARK THEME) -->
   <div class="modal-overlay" id="adminLoginModal" style="display:none; background:rgba(7, 13, 30, 0.95);">
-    <div class="modal-card" style="max-width:420px; border:1px solid #1B284A; background:#0E172F; color:white;">
-      <div class="modal-header" style="border-bottom-color:#1B284A; justify-content:center;">
-        <div style="text-align:center;">
-          <div style="font-size:32px; margin-bottom:6px;">⚡</div>
-          <h2 style="font-size:18px; font-weight:800; color:white;">Store Administrator Portal</h2>
-          <p style="font-size:12px; color:#94A3B8; margin-top:2px;">Centralized Supermarket POS Orchestration</p>
-        </div>
+    <div class="login-card">
+      <div style="text-align:center; margin-bottom:20px;">
+        <div style="font-size:32px; margin-bottom:6px;">⚡</div>
+        <h2 style="font-size:20px; font-weight:800; color:white;">Store Administrator Portal</h2>
+        <p style="font-size:12px; color:#94A3B8; margin-top:2px;">Centralized Supermarket POS Orchestration</p>
       </div>
       <form onsubmit="handleAdminLoginSubmit(event)">
-        <div class="modal-body">
-          <div id="adminLoginError" style="display:none; background:rgba(220, 38, 38, 0.2); border:1px solid #DC2626; color:#FCA5A5; padding:10px; border-radius:6px; font-size:12.5px; margin-bottom:14px;"></div>
-          
-          <div style="margin-bottom:14px;">
-            <label style="display:block; font-size:12px; font-weight:700; color:#94A3B8; margin-bottom:4px;">Administrator Username</label>
-            <input type="text" id="adminUsernameInput" class="scan-input" placeholder="admin" value="admin" style="background:#1B284A; border-color:#2E3F6E; color:white;" required>
-          </div>
-
-          <div style="margin-bottom:14px;">
-            <label style="display:block; font-size:12px; font-weight:700; color:#94A3B8; margin-bottom:4px;">Security PIN</label>
-            <input type="password" id="adminPinInput" class="scan-input" placeholder="PIN" maxlength="8" style="background:#1B284A; border-color:#2E3F6E; color:white;" required>
-          </div>
-
-          <div style="font-size:11.5px; color:#64748B;">
-            Default Admin: <code>admin</code> (PIN: 1234)
-          </div>
+        <div id="adminLoginError" style="display:none; background:rgba(220, 38, 38, 0.2); border:1px solid #DC2626; color:#FCA5A5; padding:10px; border-radius:6px; font-size:12.5px; margin-bottom:14px;"></div>
+        
+        <div style="margin-bottom:14px;">
+          <label style="display:block; font-size:12px; font-weight:700; color:#94A3B8; margin-bottom:4px;">Administrator Username</label>
+          <input type="text" id="adminUsernameInput" class="scan-input" placeholder="admin" value="admin" style="background:#1B284A; border-color:#2E3F6E; color:white;" required>
         </div>
-        <div class="modal-footer" style="background:#070D1E; border-top-color:#1B284A;">
-          <button type="submit" class="btn-action-primary" id="btnAdminLoginSubmit" style="width:100%; padding:12px;">Authenticate Administrator →</button>
+
+        <div style="margin-bottom:14px;">
+          <label style="display:block; font-size:12px; font-weight:700; color:#94A3B8; margin-bottom:4px;">Security PIN</label>
+          <input type="password" id="adminPinInput" class="scan-input" placeholder="PIN" maxlength="8" style="background:#1B284A; border-color:#2E3F6E; color:white;" required>
         </div>
+
+        <div style="font-size:11.5px; color:#64748B; margin-bottom:16px;">
+          Default Admin: <code>admin</code> (PIN: 1234)
+        </div>
+
+        <button type="submit" class="btn-action-primary" id="btnAdminLoginSubmit" style="width:100%; padding:12px; justify-content:center;">
+          Authenticate Administrator →
+        </button>
       </form>
     </div>
   </div>
 
+  <div id="toastContainer"></div>
+
+  <!-- =========================================================================
+       JAVASCRIPT FOR RESTORED ADMIN PORTAL
+       ========================================================================= -->
   <script>
-    /* =========================================================================
-       JAVASCRIPT FOR ADMIN PORTAL
-       ========================================================================= */
     const API_BASE = '';
     let authToken = localStorage.getItem('SHOPFAST_TOKEN') || null;
+
     const state = {
       user: null,
-      searchTimeout: null,
       catalogCache: [],
       staffCache: [],
       ws: null,
+      searchTimeout: null,
     };
 
     function showToast(msg, isError = false) {
-      const container = document.getElementById('toastContainer');
-      const el = document.createElement('div');
-      el.className = 'toast-msg' + (isError ? ' error' : '');
-      el.textContent = msg;
-      container.appendChild(el);
-      setTimeout(() => el.remove(), 4000);
+      let toast = document.createElement('div');
+      toast.className = 'toast-pill' + (isError ? ' error' : '');
+      toast.innerHTML = (isError ? '⚠️ ' : '⚡ ') + msg;
+      document.body.appendChild(toast);
+      setTimeout(() => { toast.remove(); }, 3500);
     }
 
+    // Live Clock
+    function updateClock() {
+      const el = document.getElementById('liveHeaderClock');
+      if (!el) return;
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const dateStr = now.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+      el.innerHTML = `${timeStr}<br><span style="font-size:10px; opacity:0.8;">${dateStr}</span>`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // API Request
     async function apiRequest(path, options = {}) {
       const headers = {
         'Content-Type': 'application/json',
@@ -1188,65 +1264,7 @@
       return res.status === 204 ? null : await res.json();
     }
 
-    // Live Admin WebSocket feed
-    function connectAdminWebSocket() {
-      if (state.ws) {
-        try { state.ws.close(); } catch (_) {}
-      }
-      if (!authToken) return;
-
-      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${location.host}/api/v1/ws/admin?token=${encodeURIComponent(authToken)}`;
-      try {
-        state.ws = new WebSocket(wsUrl);
-        state.ws.onopen = () => {
-          const statusEl = document.getElementById('adminWsStatus');
-          if (statusEl) statusEl.textContent = '● Live Sync: Connected';
-        };
-        state.ws.onmessage = (event) => {
-          try {
-            const msg = JSON.parse(event.data);
-            handleAdminWsMessage(msg);
-          } catch (_) {}
-        };
-        state.ws.onclose = () => {
-          const statusEl = document.getElementById('adminWsStatus');
-          if (statusEl) statusEl.textContent = '○ Live Sync: Reconnecting...';
-          setTimeout(connectAdminWebSocket, 4000);
-        };
-      } catch (_) {}
-    }
-
-    function handleAdminWsMessage(msg) {
-      if (!msg) return;
-      if (msg.event === 'NEW_TRANSACTION' || msg.event === 'NEW_ORDER_ASSIGNED') {
-        const ord = msg.data?.order_number ? `#${msg.data.order_number}` : '';
-        const cntr = msg.data?.counter_number || msg.data?.assigned_counter_number || '--';
-        showToast(`⚡ Live: Order ${ord} registered at Counter ${cntr}`);
-        loadOverviewData();
-        if (document.getElementById('tab-transactions')?.classList.contains('active')) {
-          loadTransactionsData();
-        }
-      } else if (msg.event === 'ORDER_CLEARED_RELEASED' || msg.event === 'ORDER_VERIFIED' || msg.event === 'TRANSACTION_UPDATED') {
-        const ord = msg.data?.order_number ? `#${msg.data.order_number}` : '';
-        const cntr = msg.data?.counter_number || '--';
-        showToast(`✓ Live: Order ${ord} verified & cleared at Counter ${cntr}`);
-        loadOverviewData();
-        if (document.getElementById('tab-transactions')?.classList.contains('active')) {
-          loadTransactionsData();
-        }
-      } else if (msg.event === 'COUNTER_STATUS_CHANGED') {
-        loadOverviewData();
-        if (document.getElementById('tab-counters')?.classList.contains('active')) {
-          loadCountersMonitorData();
-        }
-      } else if (msg.event === 'STOCK_UPDATED') {
-        if (document.getElementById('tab-catalog')?.classList.contains('active')) {
-          loadCatalogData();
-        }
-      }
-    }
-
+    // Tab Navigation
     function switchAdminTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -1264,12 +1282,7 @@
       if (tabId === 'tab-staff') loadStaffManagementData();
     }
 
-    function refreshCurrentAdminTab() {
-      const activeTab = document.querySelector('.tab-content.active');
-      if (activeTab) switchAdminTab(activeTab.id);
-    }
-
-    // Init Admin Portal
+    // Boot
     async function initAdminPortal() {
       if (!authToken) {
         showAdminLoginModal();
@@ -1279,7 +1292,6 @@
       try {
         const user = await apiRequest('/api/v1/auth/me');
         if (user.role !== 'store_admin') {
-          // If staff tries to open admin, redirect them to staff terminal
           if (user.role === 'admin' || user.role === 'staff') {
             showToast('Staff credentials detected. Redirecting to Staff Portal...', false);
             setTimeout(() => { window.location.href = '/staff'; }, 800);
@@ -1292,10 +1304,10 @@
         document.getElementById('sidebarAdminUser').textContent = user.username;
         document.getElementById('adminLoginModal').style.display = 'none';
 
-        // Connect live WebSocket feed
+        // Connect WebSocket
         connectAdminWebSocket();
 
-        // Load initial overview
+        // Load initial data
         loadOverviewData();
       } catch (err) {
         showToast(err.message, true);
@@ -1303,11 +1315,69 @@
       }
     }
 
-    // Tab 1: Load Overview
+    // Live Admin WebSocket feed
+    function connectAdminWebSocket() {
+      if (state.ws) {
+        try { state.ws.close(); } catch (_) {}
+      }
+      if (!authToken) return;
+
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${location.host}/api/v1/ws/admin?token=${encodeURIComponent(authToken)}`;
+      try {
+        state.ws = new WebSocket(wsUrl);
+        state.ws.onopen = () => {
+          document.getElementById('adminWsStatus').textContent = 'Online';
+        };
+        state.ws.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data);
+            handleAdminWsMessage(msg);
+          } catch (_) {}
+        };
+        state.ws.onclose = () => {
+          document.getElementById('adminWsStatus').textContent = 'Reconnecting...';
+          setTimeout(connectAdminWebSocket, 4000);
+        };
+      } catch (_) {}
+    }
+
+    function handleAdminWsMessage(msg) {
+      if (!msg) return;
+      if (msg.event === 'NEW_TRANSACTION' || msg.event === 'NEW_ORDER_ASSIGNED') {
+        const ord = msg.data?.order_number ? `#${msg.data.order_number}` : '';
+        const cntr = msg.data?.counter_number || msg.data?.assigned_counter_number || '--';
+        showToast(`⚡ Live: Order ${ord} registered at Counter ${cntr}`);
+        loadOverviewData();
+        if (document.getElementById('tab-transactions')?.classList.contains('active')) {
+          loadTransactionsData();
+        }
+      } else if (msg.event === 'ORDER_CLEARED_RELEASED' || msg.event === 'ORDER_VERIFIED') {
+        const ord = msg.data?.order_number ? `#${msg.data.order_number}` : '';
+        const cntr = msg.data?.counter_number || '--';
+        showToast(`✓ Live: Order ${ord} cleared at Counter ${cntr}`);
+        loadOverviewData();
+        if (document.getElementById('tab-transactions')?.classList.contains('active')) {
+          loadTransactionsData();
+        }
+      } else if (msg.event === 'COUNTER_STATUS_CHANGED') {
+        loadOverviewData();
+        if (document.getElementById('tab-counters')?.classList.contains('active')) {
+          loadCountersMonitorData();
+        }
+      } else if (msg.event === 'STOCK_UPDATED') {
+        if (document.getElementById('tab-catalog')?.classList.contains('active')) {
+          loadCatalogData();
+        }
+      }
+    }
+
+    // Tab 1: Overview
     async function loadOverviewData() {
       try {
         const data = await apiRequest('/api/v1/admin/analytics');
         document.getElementById('kpiTotalRevenue').textContent = `₹${data.total_revenue.toFixed(2)}`;
+        document.getElementById('headerRevenuePill').textContent = `Store Revenue: ₹${data.total_revenue.toFixed(2)}`;
         document.getElementById('kpiTotalOrders').textContent = data.today_orders_count;
         document.getElementById('kpiOpenCounters').textContent = `${data.open_counters_count || 5} / 5`;
         document.getElementById('kpiActiveStaff').textContent = data.active_staff_count || 0;
@@ -1316,7 +1386,7 @@
         document.getElementById('kpiStoreQueue').textContent = data.active_queue_length || 0;
         document.getElementById('kpiAvgDuration').textContent = `${data.avg_verification_seconds || 17}s`;
 
-        // Render counters table
+        // Render counters
         const cTbody = document.getElementById('overviewCountersTableBody');
         if (data.counters_overview && data.counters_overview.length > 0) {
           cTbody.innerHTML = data.counters_overview.map(c => `
@@ -1325,21 +1395,20 @@
               <td>${c.name}</td>
               <td><span style="font-size:12px; font-weight:700;">${c.is_express ? '⚡ Express' : '🛒 Standard'}</span></td>
               <td><span class="status-badge ${c.is_active ? 'open' : 'closed'}">${c.is_active ? 'OPEN' : 'CLOSED'}</span></td>
-              <td>${c.waiting_orders || 0} in queue</td>
-              <td>${c.waiting_orders || 0}</td>
-              <td style="font-family:var(--font-mono); font-size:12px;">${c.avg_throughput} items/min</td>
+              <td>${c.waiting_orders || 0} waiting</td>
+              <td style="font-family:var(--font-mono); font-size:12px;">${c.avg_throughput || 0} items/min</td>
               <td><strong style="font-family:var(--font-mono);">₹${c.counter_revenue.toFixed(2)}</strong></td>
             </tr>
           `).join('');
         }
 
-        // Render recent activity table
+        // Render recent activity
         const txTbody = document.getElementById('overviewRecentTxTableBody');
         if (data.recent_activity && data.recent_activity.length > 0) {
           txTbody.innerHTML = data.recent_activity.map(t => `
             <tr>
               <td><strong style="font-family:var(--font-mono);">#${t.order_number}</strong></td>
-              <td>${t.customer_identifier || 'Shopper'}</td>
+              <td>${t.customer_identifier || 'Walk-in'}</td>
               <td>Counter ${t.assigned_counter_number || '--'}</td>
               <td>${t.items_count} items</td>
               <td><strong style="font-family:var(--font-mono); color:var(--primary);">₹${t.total_amount.toFixed(2)}</strong></td>
@@ -1355,7 +1424,12 @@
       }
     }
 
-    // Tab 2: Inventory & Catalog
+    // Tab 2: Inventory Catalog
+    function onCatalogSearchChange() {
+      clearTimeout(state.searchTimeout);
+      state.searchTimeout = setTimeout(loadCatalogData, 300);
+    }
+
     async function loadCatalogData() {
       const search = document.getElementById('catalogSearchInput').value.trim();
       const lowStock = document.getElementById('catalogLowStockCheck').checked;
@@ -1399,17 +1473,11 @@
           `;
         }).join('');
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#DC2626; padding:20px;">Failed to load catalog: ${err.message}</td></tr>`;
+        console.warn('Catalog load error:', err);
       }
     }
 
-    function onCatalogSearchChange() {
-      clearTimeout(state.searchTimeout);
-      state.searchTimeout = setTimeout(loadCatalogData, 300);
-    }
-
     function openAddProductModal() {
-      document.getElementById('addProductErrorMsg').style.display = 'none';
       document.getElementById('addProductModal').style.display = 'flex';
     }
     function closeAddProductModal() {
@@ -1418,31 +1486,25 @@
 
     async function handleAddProductSubmit(e) {
       e.preventDefault();
-      const barcode = document.getElementById('newProdBarcode').value.trim();
-      const name = document.getElementById('newProdName').value.trim();
-      const price = parseFloat(document.getElementById('newProdPrice').value);
-      const stock_qty = parseInt(document.getElementById('newProdStock').value, 10);
-      const category = document.getElementById('newProdCategory').value;
-      const icon = document.getElementById('newProdIcon').value.trim() || '📦';
-      const errBox = document.getElementById('addProductErrorMsg');
-      const submitBtn = document.getElementById('btnSubmitAddProduct');
-
-      submitBtn.disabled = true;
-      errBox.style.display = 'none';
+      const body = {
+        name: document.getElementById('newProdName').value.trim(),
+        barcode: document.getElementById('newProdBarcode').value.trim(),
+        category: document.getElementById('newProdCategory').value.trim(),
+        price: parseFloat(document.getElementById('newProdPrice').value),
+        stock_qty: parseInt(document.getElementById('newProdStock').value, 10),
+        initial_stock_qty: parseInt(document.getElementById('newProdStock').value, 10),
+      };
 
       try {
         await apiRequest('/api/v1/admin/products', {
           method: 'POST',
-          body: JSON.stringify({ barcode, name, price, stock_qty, category, icon, is_active: true })
+          body: JSON.stringify(body)
         });
-        showToast(`Product "${name}" added to catalog.`);
+        showToast(`Created product: ${body.name}`);
         closeAddProductModal();
         loadCatalogData();
       } catch (err) {
-        errBox.textContent = err.message;
-        errBox.style.display = 'block';
-      } finally {
-        submitBtn.disabled = false;
+        showToast(err.message, true);
       }
     }
 
@@ -1450,11 +1512,9 @@
       const prod = state.catalogCache.find(p => p.barcode === barcode);
       if (!prod) return;
       document.getElementById('editProdBarcode').value = prod.barcode;
-      document.getElementById('editProductTitle').textContent = `Edit Product: ${prod.name}`;
       document.getElementById('editProdName').value = prod.name;
       document.getElementById('editProdPrice').value = prod.price;
       document.getElementById('editProdStock').value = prod.stock_qty;
-      document.getElementById('editProdIsActive').checked = prod.is_active !== false;
       document.getElementById('editProductModal').style.display = 'flex';
     }
     function closeEditProductModal() {
@@ -1464,17 +1524,18 @@
     async function handleEditProductSubmit(e) {
       e.preventDefault();
       const barcode = document.getElementById('editProdBarcode').value;
-      const name = document.getElementById('editProdName').value.trim();
-      const price = parseFloat(document.getElementById('editProdPrice').value);
-      const stock_qty = parseInt(document.getElementById('editProdStock').value, 10);
-      const is_active = document.getElementById('editProdIsActive').checked;
+      const body = {
+        name: document.getElementById('editProdName').value.trim(),
+        price: parseFloat(document.getElementById('editProdPrice').value),
+        stock_qty: parseInt(document.getElementById('editProdStock').value, 10),
+      };
 
       try {
         await apiRequest(`/api/v1/admin/products/${barcode}`, {
-          method: 'PUT',
-          body: JSON.stringify({ name, price, stock_qty, is_active })
+          method: 'PATCH',
+          body: JSON.stringify(body)
         });
-        showToast(`Product "${name}" updated.`);
+        showToast('Updated product successfully');
         closeEditProductModal();
         loadCatalogData();
       } catch (err) {
@@ -1482,153 +1543,142 @@
       }
     }
 
-    // Tab 3: Transactions
+    // Tab 3: Store Transactions
+    function onAdminTxSearchChange() {
+      clearTimeout(state.searchTimeout);
+      state.searchTimeout = setTimeout(loadTransactionsData, 300);
+    }
+
     async function loadTransactionsData() {
-      const search = document.getElementById('txSearchInput').value.trim();
-      const counter = document.getElementById('txFilterCounter').value;
-      const statusFilter = document.getElementById('txFilterStatus').value;
-      const dateFilter = document.getElementById('txFilterDate').value;
-      const tbody = document.getElementById('transactionsTableBody');
+      const search = document.getElementById('adminTxSearchInput').value.trim();
+      const counter = document.getElementById('adminTxFilterCounter').value;
+      const status = document.getElementById('adminTxFilterStatus').value;
+      const tbody = document.getElementById('adminTxTableBody');
 
       let url = `/api/v1/admin/transactions?limit=50`;
       if (search) url += `&search=${encodeURIComponent(search)}`;
-      if (counter) url += `&counter=${encodeURIComponent(counter)}`;
-      if (statusFilter) url += `&status=${encodeURIComponent(statusFilter)}`;
-      if (dateFilter) url += `&date=${encodeURIComponent(dateFilter)}`;
+      if (counter) url += `&counter_number=${encodeURIComponent(counter)}`;
+      if (status) url += `&status=${encodeURIComponent(status)}`;
 
       try {
         const txs = await apiRequest(url);
         if (!txs || txs.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--text-muted); padding:30px;">No transactions match criteria.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:30px;">No transactions found matching filters.</td></tr>';
           return;
         }
 
         tbody.innerHTML = txs.map(t => `
           <tr>
-            <td><strong style="font-family:var(--font-mono);">#${t.order_number}</strong></td>
-            <td>${t.customer_identifier || 'Walk-in'}</td>
+            <td><strong style="font-family:var(--font-mono); color:var(--primary);">#${t.order_number}</strong></td>
             <td><span style="font-weight:700;">Counter ${t.assigned_counter_number || '--'}</span></td>
+            <td>${t.customer_identifier || 'Walk-in'}</td>
             <td>${t.items_count} items</td>
-            <td><strong style="font-family:var(--font-mono); color:var(--primary);">₹${t.total_amount.toFixed(2)}</strong></td>
-            <td><span style="font-size:12px; font-weight:700;">${t.payment_method || 'UPI'}</span></td>
+            <td><strong style="font-family:var(--font-mono);">₹${t.total_amount.toFixed(2)}</strong></td>
+            <td><span class="status-badge ${t.payment_status.toLowerCase()}">${t.payment_status}</span></td>
             <td><span class="status-badge ${t.verification_status.toLowerCase()}">${t.verification_status}</span></td>
-            <td style="font-size:12px; font-family:var(--font-mono);">${t.verification_duration_seconds ? t.verification_duration_seconds + 's' : '--'}</td>
             <td style="font-size:12px; color:var(--text-muted);">${new Date(t.created_at).toLocaleString()}</td>
             <td style="text-align:right;">
-              <button class="btn-action-secondary" style="font-size:11.5px; padding:4px 8px;" onclick="viewAdminOrderDetails('${t.order_number}')">Details</button>
+              <button class="btn-action-secondary" style="font-size:11.5px; padding:4px 8px;" onclick="viewAdminOrderReceipt('${t.order_number}')">Details</button>
+              ${t.payment_status === 'PAID' && t.verification_status !== 'REFUNDED' ? `
+                <button class="btn-action-secondary" style="font-size:11.5px; padding:4px 8px; color:var(--red); border-color:var(--red-border);" onclick="refundOrderPrompt('${t.order_number}')">Refund</button>
+              ` : ''}
             </td>
           </tr>
         `).join('');
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:#DC2626; padding:20px;">Failed to load transactions: ${err.message}</td></tr>`;
+        console.warn('Tx load error:', err);
       }
     }
 
-    function onTxSearchChange() {
-      clearTimeout(state.searchTimeout);
-      state.searchTimeout = setTimeout(loadTransactionsData, 300);
-    }
-
-    async function viewAdminOrderDetails(orderNumber) {
+    async function viewAdminOrderReceipt(orderNumber) {
       try {
         const order = await apiRequest(`/api/v1/admin/orders/${orderNumber}`);
-        document.getElementById('adminModalOrderNumber').textContent = `Order #${order.order_number}`;
-        const body = document.getElementById('adminModalOrderBody');
-        body.innerHTML = `
-          <div style="margin-bottom:14px; font-size:13px; display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        document.getElementById('adminModalOrderNumber').textContent = `Order #${order.order_number} Details`;
+        document.getElementById('adminModalOrderBody').innerHTML = `
+          <div style="font-size:13px; line-height:1.6;">
             <div>Customer: <strong>${order.customer_identifier}</strong></div>
-            <div>Assigned Counter: <strong>Counter ${order.assigned_counter_number}</strong></div>
-            <div>Subtotal: <strong>₹${order.subtotal.toFixed(2)}</strong></div>
-            <div>Tax: <strong>₹${order.tax_amount.toFixed(2)}</strong></div>
-            <div>Total: <strong style="color:var(--primary); font-size:15px;">₹${order.total_amount.toFixed(2)}</strong></div>
-            <div>Payment: <strong>${order.payment_method} (${order.payment_status})</strong></div>
-          </div>
-          <h4 style="font-size:13px; font-weight:800; margin-bottom:8px;">Purchased Items & Reverification:</h4>
-          <div>
-            ${order.items.map(it => `
-              <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px;">
-                <div>
-                  <div style="font-weight:700;">${it.icon || '📦'} ${it.product_name}</div>
-                  <div style="font-size:11px; color:var(--text-muted);">Barcode: ${it.product_barcode} • ₹${it.unit_price} each</div>
-                </div>
-                <div style="text-align:right;">
-                  <div>Verified: <strong>${it.verified_quantity} / ${it.expected_quantity}</strong></div>
-                  <div style="font-weight:800;">₹${it.total_price.toFixed(2)}</div>
-                </div>
+            <div>Assigned Register: <strong>Counter ${order.assigned_counter_number}</strong></div>
+            <div>Payment: <strong>₹${order.total_amount.toFixed(2)} (${order.payment_status})</strong></div>
+            <div>Verification Status: <strong>${order.verification_status}</strong></div>
+            <div style="margin-top:14px; font-weight:800; border-bottom:1px solid var(--border); padding-bottom:6px;">Items Breakdown:</div>
+            ${order.items.map(i => `
+              <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #F1F5F9;">
+                <span>${i.product_name} (${i.verified_quantity}x verified)</span>
+                <span style="font-family:var(--font-mono);">₹${(i.unit_price * i.expected_quantity).toFixed(2)}</span>
               </div>
             `).join('')}
           </div>
         `;
-        document.getElementById('adminOrderDetailsModal').style.display = 'flex';
+        document.getElementById('adminOrderModal').style.display = 'flex';
       } catch (err) {
         showToast(err.message, true);
       }
     }
 
     function closeAdminOrderModal() {
-      document.getElementById('adminOrderDetailsModal').style.display = 'none';
+      document.getElementById('adminOrderModal').style.display = 'none';
     }
 
-    // Tab 4: Counters Monitoring
-    async function loadCountersMonitorData() {
-      const container = document.getElementById('countersMonitorGrid');
+    async function refundOrderPrompt(orderNumber) {
+      if (!confirm(`Are you sure you want to refund Order #${orderNumber}?`)) return;
       try {
-        const counters = await apiRequest('/api/v1/admin/counters');
-        container.innerHTML = counters.map(c => `
-          <div class="counter-monitor-card ${c.is_active ? '' : 'closed'}">
-            <div>
-              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
-                <div>
-                  <div style="font-size:18px; font-weight:800; font-family:var(--font-mono); color:var(--primary);">Counter ${c.counter_number}</div>
-                  <div style="font-size:13px; font-weight:700; color:var(--text-main); margin-top:2px;">${c.name}</div>
-                </div>
-                <span class="status-badge ${c.is_active ? 'open' : 'closed'}">${c.is_active ? 'OPEN' : 'CLOSED'}</span>
-              </div>
-
-              <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:16px;">
-                <div style="display:flex; justify-content:space-between; padding:4px 0;">
-                  <span>Assigned Staff:</span>
-                  <strong>${c.assigned_staff ? c.assigned_staff.display_name : 'Unassigned'}</strong>
-                </div>
-                <div style="display:flex; justify-content:space-between; padding:4px 0;">
-                  <span>Staff Online:</span>
-                  <span style="font-weight:700; color:${c.assigned_staff && c.assigned_staff.is_online ? '#15803D' : '#64748B'};">
-                    ${c.assigned_staff && c.assigned_staff.is_online ? '● Online' : '○ Offline'}
-                  </span>
-                </div>
-                <div style="display:flex; justify-content:space-between; padding:4px 0;">
-                  <span>Queue Wait:</span>
-                  <strong>${c.active_queue_length} shoppers</strong>
-                </div>
-                <div style="display:flex; justify-content:space-between; padding:4px 0;">
-                  <span>Verified Today:</span>
-                  <strong>${c.verified_today_count} checkouts</strong>
-                </div>
-                <div style="display:flex; justify-content:space-between; padding:4px 0;">
-                  <span>Register Revenue:</span>
-                  <strong style="color:var(--primary); font-family:var(--font-mono);">₹${c.counter_revenue.toFixed(2)}</strong>
-                </div>
-              </div>
-            </div>
-
-            <button type="button" class="btn-action-${c.is_active ? 'secondary' : 'primary'}" style="width:100%; justify-content:center; font-size:12.5px;" onclick="toggleCounterStatus('${c.counter_number}', ${!c.is_active})">
-              ${c.is_active ? 'Close Register' : 'Open Register'}
-            </button>
-          </div>
-        `).join('');
+        await apiRequest(`/api/v1/admin/orders/${orderNumber}/refund`, { method: 'POST' });
+        showToast(`Order #${orderNumber} refunded successfully.`);
+        loadTransactionsData();
+        loadOverviewData();
       } catch (err) {
-        container.innerHTML = `<div style="color:#DC2626; padding:20px;">Failed to load counters: ${err.message}</div>`;
+        showToast(err.message, true);
       }
     }
 
-    async function toggleCounterStatus(counterNum, newActiveState) {
+    // Tab 4: Counter Orchestration
+    async function loadCountersMonitorData() {
+      try {
+        const counters = await apiRequest('/api/v1/admin/counters');
+        const container = document.getElementById('countersMonitorGrid');
+        container.innerHTML = counters.map(c => `
+          <div class="pos-card" style="border-top:4px solid ${c.is_active ? 'var(--green)' : 'var(--red)'};">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <div>
+                <h3 style="font-size:16px; font-weight:800; font-family:var(--font-mono); color:var(--primary);">Counter ${c.counter_number}</h3>
+                <span style="font-size:11.5px; color:var(--text-muted);">${c.name} • ${c.is_express ? '⚡ Express' : '🛒 Standard'}</span>
+              </div>
+              <span class="status-badge ${c.is_active ? 'open' : 'closed'}">${c.is_active ? 'OPEN' : 'CLOSED'}</span>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; background:var(--surface-subtle); padding:10px; border-radius:var(--radius-sm);">
+              <div>
+                <span style="font-size:11px; color:var(--text-muted);">Queue Load</span>
+                <div style="font-size:16px; font-weight:800;">${c.waiting_orders || 0} waiting</div>
+              </div>
+              <div>
+                <span style="font-size:11px; color:var(--text-muted);">Throughput</span>
+                <div style="font-size:16px; font-weight:800;">${c.avg_throughput || 0} /min</div>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px;">
+              <span style="font-size:12px; font-weight:700;">Operational Switch:</span>
+              <button class="btn-action-secondary" style="font-size:11.5px; padding:4px 10px; font-weight:800; ${c.is_active ? 'color:var(--red); border-color:var(--red-border);' : 'color:var(--green); border-color:var(--green-border);'}" onclick="toggleCounterStatus('${c.counter_number}', ${!c.is_active})">
+                ${c.is_active ? 'Close Register' : 'Open Register'}
+              </button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.warn('Counters load error:', err);
+      }
+    }
+
+    async function toggleCounterStatus(counterNum, newStatus) {
       try {
         await apiRequest(`/api/v1/admin/counters/${counterNum}/status`, {
           method: 'PATCH',
-          body: JSON.stringify({ is_active: newActiveState })
+          body: JSON.stringify({ is_active: newStatus })
         });
-        showToast(`Counter ${counterNum} is now ${newActiveState ? 'OPEN' : 'CLOSED'}`);
+        showToast(`Counter ${counterNum} is now ${newStatus ? 'OPEN' : 'CLOSED'}`);
         loadCountersMonitorData();
+        loadOverviewData();
       } catch (err) {
         showToast(err.message, true);
       }
@@ -1636,41 +1686,32 @@
 
     // Tab 5: Staff Management
     async function loadStaffManagementData() {
-      const tbody = document.getElementById('staffTableBody');
       try {
         const staffList = await apiRequest('/api/v1/admin/staff');
         state.staffCache = staffList;
-        if (!staffList || staffList.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:30px;">No staff accounts found.</td></tr>';
-          return;
-        }
-
+        const tbody = document.getElementById('staffAccountsTableBody');
         tbody.innerHTML = staffList.map(s => `
           <tr>
-            <td><strong style="font-size:14px;">${s.display_name}</strong></td>
-            <td><code>${s.username}</code></td>
-            <td><span style="font-weight:800; font-family:var(--font-mono); color:var(--primary);">Counter ${s.counter_number || '--'}</span></td>
-            <td><span class="status-badge ${s.is_active ? 'open' : 'inactive'}">${s.is_active ? 'Active' : 'Disabled'}</span></td>
-            <td>
-              <span style="display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:700; color:${s.is_online ? '#15803D' : '#64748B'};">
-                <span class="status-dot" style="background:${s.is_online ? '#10B981' : '#CBD5E1'};"></span>
-                ${s.is_online ? 'Online' : 'Offline'}
-              </span>
-            </td>
-            <td style="font-size:12px; color:var(--text-muted);">${s.last_active ? new Date(s.last_active).toLocaleTimeString() : 'Never'}</td>
+            <td><strong style="font-family:var(--font-mono);">${s.username}</strong></td>
+            <td>${s.display_name}</td>
+            <td><strong style="color:var(--primary); font-family:var(--font-mono);">Counter ${s.counter_number || '--'}</strong></td>
+            <td><span style="text-transform:uppercase; font-size:11px; font-weight:700; color:var(--text-muted);">${s.role}</span></td>
+            <td><span class="status-badge ${s.is_active ? 'open' : 'closed'}">${s.is_active ? 'ACTIVE' : 'DISABLED'}</span></td>
+            <td style="font-size:12px; color:var(--text-muted);">${new Date(s.created_at).toLocaleDateString()}</td>
             <td style="text-align:right;">
-              <button class="btn-action-secondary" style="font-size:11.5px; padding:3px 8px; margin-right:4px;" onclick="openResetPinModal(${s.id}, '${s.username}')">Reset PIN</button>
-              <button class="btn-action-secondary" style="font-size:11.5px; padding:3px 8px;" onclick="toggleStaffActive(${s.id}, ${!s.is_active})">${s.is_active ? 'Deactivate' : 'Activate'}</button>
+              <button class="btn-action-secondary" style="font-size:11.5px; padding:4px 8px;" onclick="openResetPinModal('${s.id}', '${s.username}')">Reset PIN</button>
+              <button class="btn-action-secondary" style="font-size:11.5px; padding:4px 8px; ${s.is_active ? 'color:var(--red);' : 'color:var(--green);'}" onclick="toggleStaffActive('${s.id}', ${!s.is_active})">
+                ${s.is_active ? 'Disable' : 'Enable'}
+              </button>
             </td>
           </tr>
         `).join('');
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#DC2626; padding:20px;">Failed to load staff accounts: ${err.message}</td></tr>`;
+        console.warn('Staff load error:', err);
       }
     }
 
     function openAddStaffModal() {
-      document.getElementById('addStaffErrorMsg').style.display = 'none';
       document.getElementById('addStaffModal').style.display = 'flex';
     }
     function closeAddStaffModal() {
@@ -1679,24 +1720,23 @@
 
     async function handleAddStaffSubmit(e) {
       e.preventDefault();
-      const display_name = document.getElementById('newStaffDisplayName').value.trim();
-      const username = document.getElementById('newStaffUsername').value.trim().toLowerCase();
-      const pin = document.getElementById('newStaffPin').value.trim();
-      const counter_number = document.getElementById('newStaffCounter').value;
-      const errBox = document.getElementById('addStaffErrorMsg');
+      const body = {
+        username: document.getElementById('newStaffUsername').value.trim(),
+        display_name: document.getElementById('newStaffDisplayName').value.trim(),
+        pin: document.getElementById('newStaffPin').value.trim(),
+        counter_number: document.getElementById('newStaffCounter').value,
+      };
 
-      errBox.style.display = 'none';
       try {
         await apiRequest('/api/v1/admin/staff', {
           method: 'POST',
-          body: JSON.stringify({ username, display_name, pin, counter_number })
+          body: JSON.stringify(body)
         });
-        showToast(`Staff account for "${display_name}" created.`);
+        showToast(`Provisioned cashier account: ${body.username}`);
         closeAddStaffModal();
         loadStaffManagementData();
       } catch (err) {
-        errBox.textContent = err.message;
-        errBox.style.display = 'block';
+        showToast(err.message, true);
       }
     }
 
@@ -1713,27 +1753,27 @@
     async function handleResetPinSubmit(e) {
       e.preventDefault();
       const userId = document.getElementById('resetPinUserId').value;
-      const new_pin = document.getElementById('resetPinInput').value.trim();
+      const newPin = document.getElementById('resetPinInput').value.trim();
 
       try {
         await apiRequest(`/api/v1/admin/staff/${userId}/reset-pin`, {
           method: 'POST',
-          body: JSON.stringify({ new_pin })
+          body: JSON.stringify({ new_pin: newPin })
         });
-        showToast('PIN reset successfully.');
+        showToast('PIN reset successfully!');
         closeResetPinModal();
       } catch (err) {
         showToast(err.message, true);
       }
     }
 
-    async function toggleStaffActive(userId, is_active) {
+    async function toggleStaffActive(userId, newActive) {
       try {
         await apiRequest(`/api/v1/admin/staff/${userId}`, {
-          method: 'PUT',
-          body: JSON.stringify({ is_active })
+          method: 'PATCH',
+          body: JSON.stringify({ is_active: newActive })
         });
-        showToast(`Staff account ${is_active ? 'activated' : 'deactivated'}.`);
+        showToast(`Staff member ${newActive ? 'activated' : 'disabled'}.`);
         loadStaffManagementData();
       } catch (err) {
         showToast(err.message, true);
@@ -1743,17 +1783,17 @@
     // Change Admin PIN
     async function handleAdminChangePinSubmit(e) {
       e.preventDefault();
-      const current_pin = document.getElementById('adminCurrentPin').value.trim();
-      const new_pin = document.getElementById('adminNewPin').value.trim();
+      const cur = document.getElementById('adminCurrentPin').value;
+      const next = document.getElementById('adminNewPin').value;
       const btn = document.getElementById('btnAdminChangePin');
-
       btn.disabled = true;
+
       try {
-        await apiRequest('/api/v1/auth/change-pin', {
+        await apiRequest('/api/v1/admin/change-pin', {
           method: 'POST',
-          body: JSON.stringify({ current_pin, new_pin })
+          body: JSON.stringify({ current_pin: cur, new_pin: next })
         });
-        showToast('Administrator PIN successfully updated.');
+        showToast('Administrator PIN changed successfully!');
         document.getElementById('adminCurrentPin').value = '';
         document.getElementById('adminNewPin').value = '';
       } catch (err) {
@@ -1763,73 +1803,56 @@
       }
     }
 
-    // Auth & Modals
-    function showAdminLoginModal(msg = '') {
+    // Login & Logout
+    function showAdminLoginModal(errMsg = '') {
       const modal = document.getElementById('adminLoginModal');
-      const err = document.getElementById('adminLoginError');
-      if (msg) {
-        err.textContent = msg;
-        err.style.display = 'block';
+      const errEl = document.getElementById('adminLoginError');
+      if (errMsg) {
+        errEl.textContent = errMsg;
+        errEl.style.display = 'block';
       } else {
-        err.style.display = 'none';
+        errEl.style.display = 'none';
       }
       modal.style.display = 'flex';
     }
 
     async function handleAdminLoginSubmit(e) {
       e.preventDefault();
-      const username = document.getElementById('adminUsernameInput').value.trim();
-      const pin = document.getElementById('adminPinInput').value.trim();
-      const err = document.getElementById('adminLoginError');
+      const u = document.getElementById('adminUsernameInput').value.trim();
+      const p = document.getElementById('adminPinInput').value.trim();
       const btn = document.getElementById('btnAdminLoginSubmit');
-
       btn.disabled = true;
-      btn.textContent = 'Verifying...';
-      err.style.display = 'none';
 
       try {
-        const data = await apiRequest('/api/v1/auth/login', {
+        const res = await apiRequest('/api/v1/auth/login', {
           method: 'POST',
-          body: JSON.stringify({ username, pin })
+          body: JSON.stringify({ username: u, pin: p })
         });
 
-        if (data.role !== 'store_admin') {
-          if (data.role === 'admin' || data.role === 'staff') {
-            authToken = data.token;
-            localStorage.setItem('SHOPFAST_TOKEN', authToken);
-            showToast('Staff credentials detected. Redirecting to Staff Terminal...', false);
-            setTimeout(() => { window.location.href = '/staff'; }, 800);
-            return;
-          }
-          throw new Error('Access denied: Store Administrator role required.');
-        }
-
-        authToken = data.token;
+        authToken = res.access_token;
         localStorage.setItem('SHOPFAST_TOKEN', authToken);
         document.getElementById('adminLoginModal').style.display = 'none';
         initAdminPortal();
-        showToast('Authenticated as Store Administrator.');
-      } catch (loginErr) {
-        err.textContent = loginErr.message;
-        err.style.display = 'block';
+      } catch (err) {
+        const errEl = document.getElementById('adminLoginError');
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Authenticate Administrator →';
       }
     }
 
-    async function adminLogout() {
-      try {
-        if (authToken) {
-          await apiRequest('/api/v1/auth/logout', { method: 'POST' });
-        }
-      } catch (_) {}
+    function adminLogout() {
       localStorage.removeItem('SHOPFAST_TOKEN');
       authToken = null;
-      showAdminLoginModal('Logged out from Administrator portal.');
+      if (state.ws) {
+        try { state.ws.close(); } catch (_) {}
+      }
+      showAdminLoginModal('You have been logged out.');
     }
 
-    document.addEventListener('DOMContentLoaded', initAdminPortal);
+    // Boot
+    window.addEventListener('DOMContentLoaded', initAdminPortal);
   </script>
 </body>
 </html>
