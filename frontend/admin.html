@@ -1212,13 +1212,14 @@
        ========================================================================= -->
   <script>
     const API_BASE = '';
-    let authToken = localStorage.getItem('SHOPFAST_TOKEN') || sessionStorage.getItem('SHOPFAST_ADMIN_PENDING_TOKEN') || null;
-    if (authToken === 'undefined' || authToken === 'null' || !authToken) {
-      authToken = null;
+    try {
       localStorage.removeItem('SHOPFAST_TOKEN');
       sessionStorage.removeItem('SHOPFAST_ADMIN_PENDING_TOKEN');
-    } else {
-      localStorage.setItem('SHOPFAST_TOKEN', authToken);
+    } catch (_) {}
+    let authToken = localStorage.getItem('SHOPFAST_ADMIN_TOKEN') || null;
+    if (authToken === 'undefined' || authToken === 'null' || !authToken) {
+      authToken = null;
+      localStorage.removeItem('SHOPFAST_ADMIN_TOKEN');
     }
 
     const state = {
@@ -1263,6 +1264,8 @@
           if (json.detail) errDetail = json.detail;
         } catch (_) {}
         if (res.status === 401 && !path.includes('/auth/login')) {
+          authToken = null;
+          localStorage.removeItem('SHOPFAST_ADMIN_TOKEN');
           showAdminLoginModal('Session expired. Please authenticate administrator.');
         }
         const err = new Error(errDetail);
@@ -1302,19 +1305,14 @@
         user = await apiRequest('/api/v1/auth/me');
       } catch (err) {
         authToken = null;
-        localStorage.removeItem('SHOPFAST_TOKEN');
+        localStorage.removeItem('SHOPFAST_ADMIN_TOKEN');
         showAdminLoginModal(err.message || 'Session expired. Please authenticate administrator.');
         return;
       }
 
       if (user.role !== 'store_admin') {
-        if (user.role === 'admin' || user.role === 'staff') {
-          showToast('Staff credentials detected. Redirecting to Staff Portal...', false);
-          setTimeout(() => { window.location.href = '/staff'; }, 500);
-          return;
-        }
         authToken = null;
-        localStorage.removeItem('SHOPFAST_TOKEN');
+        localStorage.removeItem('SHOPFAST_ADMIN_TOKEN');
         showAdminLoginModal('Access denied: Store Administrator role required.');
         return;
       }
@@ -1854,19 +1852,18 @@
       try {
         const res = await apiRequest('/api/v1/auth/login', {
           method: 'POST',
-          body: JSON.stringify({ username: u, pin: p })
+          body: JSON.stringify({ username: u, pin: p, portal: 'admin' })
         });
 
         authToken = res.token || res.access_token;
-        localStorage.setItem('SHOPFAST_TOKEN', authToken);
+        localStorage.setItem('SHOPFAST_ADMIN_TOKEN', authToken);
+        localStorage.removeItem('SHOPFAST_TOKEN');
         sessionStorage.removeItem('SHOPFAST_ADMIN_PENDING_TOKEN');
 
         if (res.role !== 'store_admin') {
-          if (res.role === 'admin' || res.role === 'staff') {
-            showToast('Staff credentials detected. Redirecting to Staff Portal...', false);
-            setTimeout(() => { window.location.href = '/staff'; }, 500);
-            return;
-          }
+          authToken = null;
+          localStorage.removeItem('SHOPFAST_ADMIN_TOKEN');
+          throw new Error('Access denied: Store Administrator role required.');
         }
 
         document.getElementById('adminLoginModal').style.display = 'none';
@@ -1882,11 +1879,24 @@
       }
     }
 
-    function adminLogout() {
-      localStorage.removeItem('SHOPFAST_TOKEN');
+    async function adminLogout() {
+      const currentToken = authToken;
       authToken = null;
+      localStorage.removeItem('SHOPFAST_ADMIN_TOKEN');
+      localStorage.removeItem('SHOPFAST_TOKEN');
       if (state.ws) {
         try { state.ws.close(); } catch (_) {}
+      }
+      if (currentToken) {
+        try {
+          await fetch(API_BASE + '/api/v1/auth/logout', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + currentToken
+            }
+          });
+        } catch (_) {}
       }
       showAdminLoginModal('You have been logged out.');
     }

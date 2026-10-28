@@ -2283,7 +2283,7 @@
     }
 
     async function openLandingAdminModal() {
-      const token = localStorage.getItem('SHOPFAST_TOKEN');
+      const token = localStorage.getItem('SHOPFAST_ADMIN_TOKEN') || localStorage.getItem('SHOPFAST_TOKEN');
       if (token && token !== 'undefined' && token !== 'null') {
         try {
           const res = await fetch('/api/v1/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -2304,7 +2304,7 @@
     }
 
     async function openLandingStaffModal() {
-      const token = localStorage.getItem('SHOPFAST_TOKEN');
+      const token = localStorage.getItem('SHOPFAST_STAFF_TOKEN') || localStorage.getItem('SHOPFAST_TOKEN');
       if (token && token !== 'undefined' && token !== 'null') {
         try {
           const res = await fetch('/api/v1/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -2363,7 +2363,7 @@
         const res = await fetch('/api/v1/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: u, pin: p })
+          body: JSON.stringify({ username: u, pin: p, portal: 'admin' })
         });
         const data = await res.json();
         if (!res.ok) {
@@ -2371,15 +2371,12 @@
         }
 
         const token = data.token || data.access_token;
-        localStorage.setItem('SHOPFAST_TOKEN', token);
+        localStorage.setItem('SHOPFAST_ADMIN_TOKEN', token);
+        localStorage.removeItem('SHOPFAST_TOKEN');
         sessionStorage.removeItem('SHOPFAST_ADMIN_PENDING_TOKEN');
 
         if (data.role !== 'store_admin') {
-          if (data.role === 'admin' || data.role === 'staff') {
-            if (data.counter_number) localStorage.setItem('SHOPFAST_COUNTER', data.counter_number);
-            window.location.href = '/staff';
-            return;
-          }
+          throw new Error('Access denied: Store Administrator role required.');
         }
 
         window.location.href = '/admin';
@@ -2417,7 +2414,7 @@
         const res = await fetch('/api/v1/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: u, pin: p })
+          body: JSON.stringify({ username: u, pin: p, portal: 'staff' })
         });
         const data = await res.json();
         if (!res.ok) {
@@ -2425,16 +2422,16 @@
         }
 
         const token = data.token || data.access_token;
-        localStorage.setItem('SHOPFAST_TOKEN', token);
+        localStorage.setItem('SHOPFAST_STAFF_TOKEN', token);
+        localStorage.removeItem('SHOPFAST_TOKEN');
         sessionStorage.removeItem('SHOPFAST_ADMIN_PENDING_TOKEN');
 
-        if (data.role === 'store_admin') {
-          window.location.href = '/admin';
-          return;
+        if (data.role !== 'admin' && data.role !== 'staff') {
+          throw new Error('Access denied: Checkout counter staff account required.');
         }
 
         if (data.counter_number) {
-          localStorage.setItem('SHOPFAST_COUNTER', data.counter_number);
+          localStorage.setItem('SHOPFAST_STAFF_COUNTER', data.counter_number);
         }
 
         window.location.href = '/staff';

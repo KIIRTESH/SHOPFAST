@@ -103,6 +103,23 @@ async def login(
             detail="Account is inactive. Contact store management.",
         )
 
+    if payload.portal is not None:
+        if payload.portal == "customer" and user.role != "customer":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: Customer portal is for customer accounts only.",
+            )
+        elif payload.portal == "staff" and user.role not in ("admin", "staff"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: Staff portal is for staff accounts only.",
+            )
+        elif payload.portal == "admin" and user.role != "store_admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: Admin portal is for store administrator accounts only.",
+            )
+
     token = generate_session_token()
     expires = session_expires_at()
     session = UserSession(

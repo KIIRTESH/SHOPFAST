@@ -4598,9 +4598,15 @@
       { barcode: "890106301201", name: "Tropicana Orange 1L", price: 95.0, category: "Beverage", icon: "🍊", stock_qty: 40 }
     ];
 
+    // Clean legacy combined tokens
+    try {
+      localStorage.removeItem('SHOPFAST_TOKEN');
+      sessionStorage.removeItem('SHOPFAST_ADMIN_PENDING_TOKEN');
+    } catch (_) {}
+
     const state = {
       // Auth
-      authToken: localStorage.getItem('SHOPFAST_TOKEN') || null,
+      authToken: localStorage.getItem('SHOPFAST_CUSTOMER_TOKEN') || null,
       user: null,
 
       // Mall Location
@@ -4666,10 +4672,18 @@
       }
 
       if (res.status === 401) {
-        // Session expired — force re-login
-        clearAuthState();
-        showAuthScreen();
-        throw new Error('Session expired');
+        if (!path.includes('/auth/login')) {
+          clearAuthState();
+          showAuthScreen();
+        }
+        let detail = 'Session expired';
+        try {
+          const j = await res.json();
+          if (j.detail) detail = j.detail;
+        } catch (_) {}
+        const err = new Error(detail);
+        err.status = 401;
+        throw err;
       }
 
       // Render Free Tier spin-up may return 502/503 during first few seconds
@@ -4692,12 +4706,13 @@
     }
 
     /* =========================================================================
-       3. AUTHENTICATION
+       3. COMPREHENSIVE CUSTOMER AUTHENTICATION
        ========================================================================= */
     function clearAuthState() {
       state.authToken = null;
       state.user = null;
       state.completedOrder = null;
+      localStorage.removeItem('SHOPFAST_CUSTOMER_TOKEN');
       localStorage.removeItem('SHOPFAST_TOKEN');
       sessionStorage.removeItem('SHOPFAST_ACTIVE_ORDER');
       sessionStorage.removeItem('SHOPFAST_ACTIVE_ORDER_NUM');
@@ -4706,7 +4721,8 @@
     function persistAuth(token, user) {
       state.authToken = token;
       state.user = user;
-      localStorage.setItem('SHOPFAST_TOKEN', token);
+      localStorage.setItem('SHOPFAST_CUSTOMER_TOKEN', token);
+      localStorage.removeItem('SHOPFAST_TOKEN');
     }
 
     function showAuthScreen(showRegister = false) {
@@ -4744,13 +4760,7 @@
     }
 
     function launchAdminTerminal(counterNumber) {
-      const cNum = counterNumber || '03';
-      localStorage.setItem('SHOPFAST_COUNTER', cNum);
-      const pending = sessionStorage.getItem('SHOPFAST_ADMIN_PENDING_TOKEN');
-      if (pending) {
-        localStorage.setItem('SHOPFAST_TOKEN', pending);
-      }
-      window.location.href = `/admin?counter=${encodeURIComponent(cNum)}`;
+      window.location.href = '/staff';
     }
 
     function showAuthError(elId, msg) {
@@ -4776,25 +4786,11 @@
       try {
         const res = await apiFetch('/api/v1/auth/login', {
           method: 'POST',
-          body: JSON.stringify({ username, pin })
+          body: JSON.stringify({ username, pin, portal: 'customer' })
         });
 
-        // If store_admin: establish session and navigate directly to Admin Dashboard
-        if (res.role === 'store_admin') {
-          localStorage.setItem('SHOPFAST_TOKEN', res.token);
-          sessionStorage.removeItem('SHOPFAST_ADMIN_PENDING_TOKEN');
-          window.location.href = '/admin';
-          return;
-        }
-
-        // If counter staff: establish session and navigate directly to assigned Staff Dashboard
-        if (res.role === 'admin' || res.role === 'staff') {
-          localStorage.setItem('SHOPFAST_TOKEN', res.token);
-          if (res.counter_number) {
-            localStorage.setItem('SHOPFAST_COUNTER', res.counter_number);
-          }
-          sessionStorage.removeItem('SHOPFAST_ADMIN_PENDING_TOKEN');
-          window.location.href = '/staff';
+        if (res.role !== 'customer') {
+          showAuthError('loginError', 'This is a staff or admin account. Please use the appropriate staff or admin portal.');
           return;
         }
 
@@ -4802,6 +4798,7 @@
         onAuthSuccess(res);
       } catch (e) {
         showAuthError('loginError', e.message || 'Login failed. Check your username and PIN.');
+      } finally {
         btn.disabled = false;
         btn.textContent = 'Log In →';
       }
@@ -4851,10 +4848,19 @@
 
     async function doLogout() {
       stopCameraScanner();
-      try {
-        await apiFetch('/api/v1/auth/logout', { method: 'POST' });
-      } catch (_) {}
+      const currentToken = state.authToken;
       clearAuthState();
+      if (currentToken) {
+        try {
+          await fetch(API_BASE + '/api/v1/auth/logout', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + currentToken
+            }
+          });
+        } catch (_) {}
+      }
       state.cart = {};
       closeDrawer();
       try {
@@ -4909,6 +4915,11 @@
       }
       try {
         const user = await apiFetch('/api/v1/auth/me');
+        if (user.role !== 'customer') {
+          clearAuthState();
+          showAuthScreen();
+          return;
+        }
         state.user = user;
         updateDrawerUser(user);
       } catch (_) {

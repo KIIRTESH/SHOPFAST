@@ -179,7 +179,8 @@ async def init_db(reset_stock: bool = False):
         if settings.should_seed_demo_accounts:
             for cust in SEED_CUSTOMER_USERS:
                 res = await session.execute(select(User).where(User.username == cust["username"]))
-                if not res.scalars().first():
+                existing_cust = res.scalars().first()
+                if not existing_cust:
                     pin_hash, pin_salt = create_pin_hash(cust["pin"])
                     session.add(User(
                         username=cust["username"],
@@ -190,6 +191,12 @@ async def init_db(reset_stock: bool = False):
                         is_active=True,
                     ))
                     logger.info(f"Seeded customer user: {cust['username']}")
+                elif reset_stock:
+                    pin_hash, pin_salt = create_pin_hash(cust["pin"])
+                    existing_cust.pin_hash = pin_hash
+                    existing_cust.pin_salt = pin_salt
+                    existing_cust.role = "customer"
+                    existing_cust.is_active = True
 
         await session.commit()
         logger.info("Database seeding complete.")

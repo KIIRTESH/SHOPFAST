@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict, field_validator
-from typing import Optional
+from typing import Optional, Literal
 
 
 class RegisterRequest(BaseModel):
@@ -37,6 +37,7 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     pin: str
+    portal: Optional[Literal["customer", "staff", "admin"]] = None
 
     @field_validator("username")
     @classmethod

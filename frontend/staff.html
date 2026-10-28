@@ -2010,13 +2010,14 @@
        ========================================================================= -->
   <script>
     const API_BASE = '';
-    let authToken = localStorage.getItem('SHOPFAST_TOKEN') || sessionStorage.getItem('SHOPFAST_ADMIN_PENDING_TOKEN') || null;
-    if (authToken === 'undefined' || authToken === 'null' || !authToken) {
-      authToken = null;
+    try {
       localStorage.removeItem('SHOPFAST_TOKEN');
       sessionStorage.removeItem('SHOPFAST_ADMIN_PENDING_TOKEN');
-    } else {
-      localStorage.setItem('SHOPFAST_TOKEN', authToken);
+    } catch (_) {}
+    let authToken = localStorage.getItem('SHOPFAST_STAFF_TOKEN') || null;
+    if (authToken === 'undefined' || authToken === 'null' || !authToken) {
+      authToken = null;
+      localStorage.removeItem('SHOPFAST_STAFF_TOKEN');
     }
 
     const state = {
@@ -2097,6 +2098,8 @@
           if (json.detail) errDetail = json.detail;
         } catch (_) {}
         if (res.status === 401 && !path.includes('/auth/login')) {
+          authToken = null;
+          localStorage.removeItem('SHOPFAST_STAFF_TOKEN');
           showStaffLoginModal('Session expired. Please sign in again.');
         }
         const err = new Error(errDetail);
@@ -2134,25 +2137,21 @@
         user = await apiRequest('/api/v1/auth/me');
       } catch (err) {
         authToken = null;
-        localStorage.removeItem('SHOPFAST_TOKEN');
+        localStorage.removeItem('SHOPFAST_STAFF_TOKEN');
         showStaffLoginModal(err.message || 'Session expired. Please sign in again.');
         return;
       }
 
       if (user.role !== 'admin' && user.role !== 'staff') {
-        if (user.role === 'store_admin') {
-          window.location.href = '/admin';
-          return;
-        }
         authToken = null;
-        localStorage.removeItem('SHOPFAST_TOKEN');
+        localStorage.removeItem('SHOPFAST_STAFF_TOKEN');
         showStaffLoginModal('Access denied: Checkout counter staff account required.');
         return;
       }
 
-      const counter = user.counter_number || localStorage.getItem('SHOPFAST_COUNTER') || '01';
+      const counter = user.counter_number || localStorage.getItem('SHOPFAST_STAFF_COUNTER') || localStorage.getItem('SHOPFAST_COUNTER') || '01';
       user.counter_number = counter;
-      localStorage.setItem('SHOPFAST_COUNTER', counter);
+      localStorage.setItem('SHOPFAST_STAFF_COUNTER', counter);
 
       state.user = user;
       state.assignedCounter = counter;
@@ -2698,21 +2697,16 @@
       try {
         const res = await apiRequest('/api/v1/auth/login', {
           method: 'POST',
-          body: JSON.stringify({ username: u, pin: p })
+          body: JSON.stringify({ username: u, pin: p, portal: 'staff' })
         });
 
         authToken = res.token || res.access_token;
-        localStorage.setItem('SHOPFAST_TOKEN', authToken);
+        localStorage.setItem('SHOPFAST_STAFF_TOKEN', authToken);
+        localStorage.removeItem('SHOPFAST_TOKEN');
         sessionStorage.removeItem('SHOPFAST_ADMIN_PENDING_TOKEN');
 
-        if (res.role === 'store_admin') {
-          showToast('Store Administrator credentials detected. Redirecting to Admin Portal...', false);
-          setTimeout(() => { window.location.href = '/admin'; }, 500);
-          return;
-        }
-
         if (res.counter_number) {
-          localStorage.setItem('SHOPFAST_COUNTER', res.counter_number);
+          localStorage.setItem('SHOPFAST_STAFF_COUNTER', res.counter_number);
         }
 
         document.getElementById('staffLoginModal').style.display = 'none';
@@ -2728,11 +2722,25 @@
       }
     }
 
-    function staffLogout() {
-      localStorage.removeItem('SHOPFAST_TOKEN');
+    async function staffLogout() {
+      const currentToken = authToken;
       authToken = null;
+      localStorage.removeItem('SHOPFAST_STAFF_TOKEN');
+      localStorage.removeItem('SHOPFAST_STAFF_COUNTER');
+      localStorage.removeItem('SHOPFAST_TOKEN');
       if (state.ws) {
         try { state.ws.close(); } catch (_) {}
+      }
+      if (currentToken) {
+        try {
+          await fetch(API_BASE + '/api/v1/auth/logout', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + currentToken
+            }
+          });
+        } catch (_) {}
       }
       showStaffLoginModal('You have been logged out.');
     }
