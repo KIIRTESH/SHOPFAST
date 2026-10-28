@@ -2096,7 +2096,7 @@
           const json = await res.json();
           if (json.detail) errDetail = json.detail;
         } catch (_) {}
-        if (res.status === 401) {
+        if (res.status === 401 && !path.includes('/auth/login')) {
           showStaffLoginModal('Session expired. Please sign in again.');
         }
         const err = new Error(errDetail);
@@ -2129,44 +2129,52 @@
         return;
       }
 
+      let user;
       try {
-        const user = await apiRequest('/api/v1/auth/me');
-        if (user.role !== 'admin' && user.role !== 'staff') {
-          if (user.role === 'store_admin') {
-            window.location.href = '/admin';
-            return;
-          }
-          throw new Error('Access denied: Checkout counter staff account required.');
-        }
-
-        if (!user.counter_number) {
-          throw new Error('Access denied: No checkout register assigned to this staff account.');
-        }
-
-        state.user = user;
-        state.assignedCounter = user.counter_number;
-
-        // Populate elements
-        document.getElementById('headerSubtitle').textContent = `Sai Supermarket • Counter ${user.counter_number} (Cashier: ${user.display_name || user.username})`;
-        document.getElementById('sidebarCounterLabel').textContent = `Counter ${user.counter_number}`;
-        document.getElementById('sidebarStaffDisplayName').textContent = user.display_name || user.username;
-        document.getElementById('dashCounterTitle').textContent = `Counter ${user.counter_number} Operations`;
-        document.getElementById('settingsStaffName').textContent = user.display_name || user.username;
-        document.getElementById('settingsStaffUsername').textContent = user.username;
-        document.getElementById('settingsStaffCounter').textContent = `Counter ${user.counter_number}`;
-
-        // Connect WebSocket
-        connectWebSocket();
-
-        // Load data
-        loadStaffDashboard();
-        loadStaffActiveOrders();
+        user = await apiRequest('/api/v1/auth/me');
       } catch (err) {
         authToken = null;
         localStorage.removeItem('SHOPFAST_TOKEN');
-        showToast(err.message, true);
-        showStaffLoginModal(err.message);
+        showStaffLoginModal(err.message || 'Session expired. Please sign in again.');
+        return;
       }
+
+      if (user.role !== 'admin' && user.role !== 'staff') {
+        if (user.role === 'store_admin') {
+          window.location.href = '/admin';
+          return;
+        }
+        authToken = null;
+        localStorage.removeItem('SHOPFAST_TOKEN');
+        showStaffLoginModal('Access denied: Checkout counter staff account required.');
+        return;
+      }
+
+      const counter = user.counter_number || localStorage.getItem('SHOPFAST_COUNTER') || '01';
+      user.counter_number = counter;
+      localStorage.setItem('SHOPFAST_COUNTER', counter);
+
+      state.user = user;
+      state.assignedCounter = counter;
+
+      // Hide staff login modal upon established session
+      document.getElementById('staffLoginModal').style.display = 'none';
+
+      // Populate elements
+      document.getElementById('headerSubtitle').textContent = `Sai Supermarket • Counter ${counter} (Cashier: ${user.display_name || user.username})`;
+      document.getElementById('sidebarCounterLabel').textContent = `Counter ${counter}`;
+      document.getElementById('sidebarStaffDisplayName').textContent = user.display_name || user.username;
+      document.getElementById('dashCounterTitle').textContent = `Counter ${counter} Operations`;
+      document.getElementById('settingsStaffName').textContent = user.display_name || user.username;
+      document.getElementById('settingsStaffUsername').textContent = user.username;
+      document.getElementById('settingsStaffCounter').textContent = `Counter ${counter}`;
+
+      // Connect WebSocket safely without resetting auth
+      try { connectWebSocket(); } catch (e) { console.warn('WS error:', e); }
+
+      // Load data safely without resetting auth
+      try { loadStaffDashboard(); } catch (e) { console.warn('Dashboard load error:', e); }
+      try { loadStaffActiveOrders(); } catch (e) { console.warn('Active orders load error:', e); }
     }
 
     // Live WebSocket connection
