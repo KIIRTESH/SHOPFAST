@@ -4863,11 +4863,7 @@
       }
       state.cart = {};
       closeDrawer();
-      try {
-        history.replaceState({ screenId: 'auth', loggedOut: true }, '', '/shop#login');
-      } catch (_) {}
-      showAuthScreen();
-      render();
+      window.location.href = '/';
     }
 
     async function continueAsGuest() {
