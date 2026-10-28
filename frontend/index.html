@@ -3306,12 +3306,6 @@
       <div class="drawer-nav-item" onclick="closeDrawer(); openVisualBarcodesModal();">
         <span class="nav-icon">📱</span> Product Barcodes Sheet
       </div>
-      <div class="drawer-nav-item" onclick="closeDrawer(); window.location.href='/staff';">
-        <span class="nav-icon">🖥️</span> Staff POS Terminal
-      </div>
-      <div class="drawer-nav-item" onclick="closeDrawer(); window.location.href='/admin';">
-        <span class="nav-icon">🛡️</span> Admin Management
-      </div>
       <div class="drawer-nav-item" onclick="closeDrawer(); window.location.href='/';">
         <span class="nav-icon">🌐</span> Store Landing Showcase
       </div>
@@ -3399,65 +3393,6 @@
         <div class="auth-switch-row">Already have an account? <a onclick="showLoginForm()">Log in</a></div>
         <div style="margin-top:14px; text-align:center;">
           <a href="/" style="font-size:11.5px; color:var(--text-muted); text-decoration:none;">← Return to Store Showcase / Landing Page</a>
-        </div>
-      </div>
-
-      <!-- Counter Station Selection Card (Shown right after Admin / admin3 Login) -->
-      <div id="authCounterSelectCard" class="auth-card" style="display:none; max-width:440px;">
-        <div class="auth-brand-row"><span class="auth-bolt">⚡</span>ShopFast Terminal</div>
-        <div class="auth-title">Choose Counter Station</div>
-        <div class="auth-subtitle">Authenticated as <b id="adminLoggedInUser" style="color:var(--primary);">admin3</b>. Select the checkout counter you are operating today:</div>
-        
-        <div class="counter-select-stations" style="display:flex; flex-direction:column; gap:10px; margin:18px 0;">
-          <button type="button" class="station-select-btn" onclick="launchAdminTerminal('01')" style="display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--surface-subtle); border:1.5px solid var(--border); border-radius:12px; cursor:pointer; width:100%; text-align:left; transition:all 0.15s ease;">
-            <div style="width:38px; height:38px; border-radius:10px; background:#EFF6FF; color:#2563EB; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; font-family:var(--font-mono);">01</div>
-            <div style="flex:1;">
-              <div style="font-weight:800; font-size:14px; color:var(--text-main);">Register 01</div>
-              <div style="font-size:11.5px; color:var(--text-muted);">Standard General Checkout Counter</div>
-            </div>
-            <span style="font-size:13px; font-weight:800; color:var(--primary);">Select ›</span>
-          </button>
-
-          <button type="button" class="station-select-btn" onclick="launchAdminTerminal('02')" style="display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--surface-subtle); border:1.5px solid var(--border); border-radius:12px; cursor:pointer; width:100%; text-align:left; transition:all 0.15s ease;">
-            <div style="width:38px; height:38px; border-radius:10px; background:#EFF6FF; color:#2563EB; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; font-family:var(--font-mono);">02</div>
-            <div style="flex:1;">
-              <div style="font-weight:800; font-size:14px; color:var(--text-main);">Register 02</div>
-              <div style="font-size:11.5px; color:var(--text-muted);">High-Speed General Register</div>
-            </div>
-            <span style="font-size:13px; font-weight:800; color:var(--primary);">Select ›</span>
-          </button>
-
-          <button type="button" class="station-select-btn" onclick="launchAdminTerminal('03')" style="display:flex; align-items:center; gap:12px; padding:12px 14px; background:rgba(255,85,0,0.06); border:1.5px solid var(--primary); border-radius:12px; cursor:pointer; width:100%; text-align:left; transition:all 0.15s ease;">
-            <div style="width:38px; height:38px; border-radius:10px; background:#FFF2EB; color:var(--primary); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; font-family:var(--font-mono);">03</div>
-            <div style="flex:1;">
-              <div style="font-weight:800; font-size:14px; color:var(--text-main);">Express Lane 03 <span style="font-size:10px; background:#FF5500; color:#FFF; font-weight:800; padding:2px 6px; border-radius:999px; margin-left:4px;">EXPRESS</span></div>
-              <div style="font-size:11.5px; color:var(--text-muted);">Dedicated Express Lane (&le; 5 items)</div>
-            </div>
-            <span style="font-size:13px; font-weight:800; color:var(--primary);">Select ›</span>
-          </button>
-
-          <button type="button" class="station-select-btn" onclick="launchAdminTerminal('04')" style="display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--surface-subtle); border:1.5px solid var(--border); border-radius:12px; cursor:pointer; width:100%; text-align:left; transition:all 0.15s ease;">
-            <div style="width:38px; height:38px; border-radius:10px; background:#EFF6FF; color:#2563EB; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; font-family:var(--font-mono);">04</div>
-            <div style="flex:1;">
-              <div style="font-weight:800; font-size:14px; color:var(--text-main);">Register 04</div>
-              <div style="font-size:11.5px; color:var(--text-muted);">Standard General Checkout Register</div>
-            </div>
-            <span style="font-size:13px; font-weight:800; color:var(--primary);">Select ›</span>
-          </button>
-
-          <button type="button" class="station-select-btn" onclick="launchAdminTerminal('07')" style="display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--surface-subtle); border:1.5px solid var(--border); border-radius:12px; cursor:pointer; width:100%; text-align:left; transition:all 0.15s ease;">
-            <div style="width:38px; height:38px; border-radius:10px; background:#ECFDF5; color:#10B981; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; font-family:var(--font-mono);">07</div>
-            <div style="flex:1;">
-              <div style="font-weight:800; font-size:14px; color:var(--text-main);">Fast-Track Counter 07 <span style="font-size:10px; background:#10B981; color:#FFF; font-weight:800; padding:2px 6px; border-radius:999px; margin-left:4px;">FAST</span></div>
-              <div style="font-size:11.5px; color:var(--text-muted);">High-Priority Basket Verification</div>
-            </div>
-            <span style="font-size:13px; font-weight:800; color:var(--primary);">Select ›</span>
-          </button>
-        </div>
-
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:12px; border-top:1px solid var(--border);">
-          <button class="nav-link-btn" onclick="clearAuthState(); showLoginForm();">← Switch Account</button>
-          <span style="font-size:11.5px; color:var(--text-muted);">Auto-sets active terminal</span>
         </div>
       </div>
     </div>
@@ -4729,8 +4664,6 @@
       document.getElementById('authScreenWrap').style.display = 'flex';
       document.getElementById('authLoginCard').style.display = showRegister ? 'none' : 'block';
       document.getElementById('authRegisterCard').style.display = showRegister ? 'block' : 'none';
-      const counterCard = document.getElementById('authCounterSelectCard');
-      if (counterCard) counterCard.style.display = 'none';
       try {
         const hash = showRegister ? '#register' : '#login';
         if (window.location.hash !== hash) {
@@ -4746,21 +4679,13 @@
     function showLoginForm() {
       document.getElementById('authLoginCard').style.display = 'block';
       document.getElementById('authRegisterCard').style.display = 'none';
-      const counterCard = document.getElementById('authCounterSelectCard');
-      if (counterCard) counterCard.style.display = 'none';
       document.getElementById('loginError').style.display = 'none';
     }
 
     function showRegisterForm() {
       document.getElementById('authRegisterCard').style.display = 'block';
       document.getElementById('authLoginCard').style.display = 'none';
-      const counterCard = document.getElementById('authCounterSelectCard');
-      if (counterCard) counterCard.style.display = 'none';
       document.getElementById('registerError').style.display = 'none';
-    }
-
-    function launchAdminTerminal(counterNumber) {
-      window.location.href = '/staff';
     }
 
     function showAuthError(elId, msg) {
