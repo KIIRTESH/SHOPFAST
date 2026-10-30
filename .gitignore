@@ -28,3 +28,5 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+deploy_auto.sh
+auto_deploy.log
